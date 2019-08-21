@@ -27,6 +27,7 @@ class player():
 # Move class
 class move():
     def __init__(self):
+        self.game_nbr = 0
         self.round_nbr = 0
         self.move_nbr = 0
         self.player_nbr = 0
@@ -51,8 +52,22 @@ def spin():
     """ return a number between 1 and 6 """
     return randrange(1,7)
 
+
+def attr_list(list_name, attr_name):
+    """
+    For a list of objects, return a list of the specified attribute
+    """
+    attr_list = []
+    for i in range(len(list_name)):
+        attr_list.append(getattr(list_name[i], attr_name))
+        
+    return attr_list
+
+
   
-# global variables
+#------------------------------------------------------------------------------    
+# initialize variables
+#------------------------------------------------------------------------------
 player_count = 4
 total_games = 10000       # number of games to simulate
 path_th = 10             # threshold for entering the branched path
@@ -63,194 +78,142 @@ allow_shelter_runout = True    # allow the animal shelter to run out
 color_list = ['pink', 'blue', 'yellow', 'orange']   # clockwise order of colors  
 
 
-# cycle through games
+#------------------------------------------------------------------------------    
+#  cycle through simulated games
+#------------------------------------------------------------------------------
+    
 start_time = time.time()
   
-for game_nbr in range(total_games):
+
+#for game_nbr in range(total_games):
     
-    # initialize a list of players
-    players = []
-    tie_break_spins = {}
-    for p in range(player_count):
-        players.append(player)
+#------------------------------------------------------------------------------    
+#  spin to see which player goes first
+#------------------------------------------------------------------------------
+initial_spins = []
+tie_break_spins = {}
+for p in range(player_count):
+    initial_spins.append(spin())
+    tie_break_spins[p] = initial_spins[p]    # duplicate the spins
 
-        # assign a color, in clockwise order
-        n = randrange(0, player_count)
-        players[p].color = color_list[(n+p) % 4]
+# tie break the initial spin, if necessary    
+tie_break_loops = 0    
+while sum(v > 0 for v in tie_break_spins.values()) > 1:
+    tied = False
+    max_spin = max(v for v in tie_break_spins.values())
+    
+    if sum(v == max_spin for v in tie_break_spins.values()) > 1:
+        tied = True
 
-        players[p].initial_spin = spin()
-        tie_break_spins[p] = players[p].initial_spin
+    if tied == True:
+        for k, v in tie_break_spins.items():
+            if v == max_spin:
+                tie_break_spins[k] = spin()    # spin again
+            else:
+                tie_break_spins[k] = 0    
                 
-        players[p].cats = 2
-        players[p].location = 1
+    else:    # not tied
+        for k, v in tie_break_spins.items():
+            if tie_break_loops == 0:
+                tie_break_spins[k] = 0    # set all to zero
+            else:
+               initial_spins[k] = v
+        break
+
+    tie_break_loops += 1
+
     
-    # tie break the initial spin, if necessary        
-    while sum(v > 0 for v in tie_break_spins.values()) > 1:  
-        max_spin = -1
-        tied = False
-        for v in tie_break_spins.values():
-            if v > max_spin: 
-                max_spin = v
-            elif max_spin == v:
-                tied = True
+#------------------------------------------------------------------------------    
+# initialize the players, starting with the highest spin in element 0
+#------------------------------------------------------------------------------
     
-        if tied == True:
-            for k, v in tie_break_spins.items():
-                if v == max_spin:
-                    tie_break_spins[k] = spin()    # spin again
-                else:
-                    tie_break_spins[k] = 0    
-        else:
-            tied = False
-            for k, v in tie_break_spins.items():
-                if v != max_spin:
-                    tie_break_spins[k] = 0
-                else:
-                    players[k].tie_break_spin = v
-                    
-    print(tie_break_spins)
-    
-    testit = []
-    for i in range(player_count):
-        testit.append(players[i].initial_spin)
-    print(testit)
-    
+# spin order offset
+if tie_break_loops == 0:    # initial spin not tied
+    n = initial_spins.index(max_spin)
+else:
+    n = tie_break_spins.index(max_spin)
+
+# color offset
+c = randrange(0, player_count)    
+
+players = []
+for p in range(player_count):
+    players.append(player())
+
+    # assign a color, in clockwise order
+    players[p].color = color_list[(p+c) % 4]
+
+    players[p].initial_spin = initial_spins[(p+n) % player_count]
+    players[p].tie_break_spin = tie_break_spins[(p+n) % player_count]
+            
+    players[p].cats = 2
+    players[p].location = 1
+
+
+#------------------------------------------------------------------------------    
+#  play the game
+#------------------------------------------------------------------------------
+r = -1   # round
+m = -1    # move
+game_over = False
+
+moves = []
+while game_over != True:
+    r += 1
   
+    for p in range(player_count):
+        # does this player skip a turn?
+        if players[p].skip_next_turn == True:
+            players[p].skip_next_turn = False    # reset the flag
+            continue    # skip turn
+        
+        m += 1
+        
+        moves.append(move())
+        moves[m].game_nbr = g+1
+        moves[m].round_nbr = r
+        moves[m].move_nbr = m
+        moves[m].player_nbr = p+1
+        moves[m].spin_value = spin()
+        moves[m].player_prev_m = players[p].prev_move_nbr
+        moves[m].player_prev_location = players[p].location
+    
+    
+        # find the landing space
+        if players[p].location + moves[m].spin_value <= 28:
+            # before the split
+            moves[m].landing_space = players[p].location + moves[m].spin_value
+                                              
+        elif (players[p].location <= 28 and players[p].cats < path_th) \
+             or (players[p].location > 28 and players[p].location <= 33):
+            # player doesn't have enough cats for lower path OR
+            # player is already on the upper path --> take upper path
+            moves[m].landing_space = (players[p].location + moves[m].spin_value - 1) \
+                                     % 33 + 1
+                                              
+        else:    # enough cats for lower path OR already on lower path
+            moves[m].landing_space = players[p].location + moves[m].spin_value
+            if player[p].location <= 28:
+                moves[m].landing_space += 5
+            
+            if moves[m].landing_space > 40:
+                moves[m].landing_space = 40
 
-
-#initial_spin(1, 1) = "orange"
-#initial_spin(1, 2) = "pink"
-#initial_spin(1, 3) = "blue"
-#initial_spin(1, 4) = "yellow"
-#  
-#'record spins
-#initial_spin_count = 1
-#For i = 1 To 4
-#  initial_spin(2, i) = spin()    'used for retention
-#  initial_spin(3, i) = initial_spin(2, i)    'used for tie break
-#Next i
-#
-#'find the player with the highest spin and check for tie
-#Do
-#  'find highest
-#  highest_spin = 0
-#  For i = 1 To 4
-#    If initial_spin(3, i) > highest_spin Then highest_spin = initial_spin(3, i)
-#  Next i
-#  
-#  'check for tie
-#  tied_count = 0
-#  For i = 1 To 4
-#    If initial_spin(3, i) = highest_spin Then
-#      tied_count = tied_count + 1
-#    End If
-#  Next i
-#
-#  'spin again to tie break
-#  If tied_count > 1 Then
-#    initial_spin_count = initial_spin_count + 1
-#    For i = 1 To 4
-#      If initial_spin(3, i) = highest_spin Then
-#        initial_spin(3, i) = spin()
-#      Else
-#        initial_spin(3, i) = 0
-#      End If
-#    Next i
-#  End If
-#Loop Until tied_count = 1
-#
-#'find the first player
-#For c = 1 To 4
-#  If initial_spin(3, c) = highest_spin Then Exit For    'c is the player with the highest spin
-#Next c
-#   
-#
-#'--- initialize player info ----------------------------------------
-#
-#For i = 1 To 4
-#  player_status(1, i) = i    'player #
-#  player_status(2, i) = initial_spin(1, ((i + (c - 2)) Mod 4) + 1)    'color
-#  player_status(3, i) = initial_spin(2, ((i + (c - 2)) Mod 4) + 1)    'initial spin
-#  If initial_spin_count > 1 And initial_spin(3, ((i + (c - 2)) Mod 4) + 1) > 0 Then
-#    player_status(4, i) = initial_spin(3, ((i + (c - 2)) Mod 4) + 1)    'initial spin tie break
-#  Else
-#    player_status(4, i) = 0
-#  End If
-#  player_status(5, i) = 1   'start space
-#  player_status(6, i) = False   'skip next turn
-#  player_status(7, i) = 2   'initial allocation of pieces
-#  player_status(8, i) = 0   'set win flag to zero
-#  player_status(9, i) = 0   'initialize prev move to zero
-#Next i
-#
-#
-#'--- play ----------------------------------------
-#
-#turn_nbr = 0
-#move_nbr = 0
-#
-#Do
-#  turn_nbr = turn_nbr + 1
-#  
-#  For player_nbr = 1 To 4
-#    
-#    'does this player skip a turn?
-#    If player_status(6, player_nbr) = True Then
-#      player_status(6, player_nbr) = False    'reset the flag
-#      GoTo next_player
-#    End If
-#    
-#player_spin:
-#    'spin
-#    s = spin()
-#    
-#    move_nbr = move_nbr + 1
-#    total_moves = total_moves + 1
-#    
-#    ReDim Preserve moves(1 To 18, 1 To total_moves - moves_break)   'add a record
-#    moves(1, total_moves - moves_break) = game_nbr
-#    moves(2, total_moves - moves_break) = move_nbr
-#    moves(3, total_moves - moves_break) = turn_nbr
-#    moves(4, total_moves - moves_break) = player_status(2, player_nbr)
-#    moves(5, total_moves - moves_break) = s
-#    moves(17, total_moves - moves_break) = player_status(9, player_nbr)    'previous move nbr
-#    moves(18, total_moves - moves_break) = player_status(5, player_nbr)    'previous location
-#    
-#    
-#    'find the landing space (path is branched after space 28 based on # of cats)
-#    If player_status(5, player_nbr) + s <= 28 Then
-#    'landing space is before or on the split
-#      moves(6, total_moves - moves_break) = player_status(5, player_nbr) + s    'current space + spin
-#    ElseIf (player_status(5, player_nbr) <= 28 And player_status(7, player_nbr) < path_th) _
-#           Or (player_status(5, player_nbr) > 28 And player_status(5, player_nbr) <= 33) Then
-#    'before the split and not enough cats -- OR -- already on upper path --> take upper path
-#      moves(6, total_moves - moves_break) = ((player_status(5, player_nbr) + s - 1) Mod 33) + 1
-#    Else
-#    'before the split and cats >= threshold -- OR -- player already on the lower path --> take the lower path
-#        moves(6, total_moves - moves_break) = player_status(5, player_nbr) + IIf(player_status(5, player_nbr) <= 28, 5, 0) + s
-#        If moves(6, total_moves - moves_break) > 40 Then moves(6, total_moves - moves_break) = 40    'stop at home (last) space
-#    End If
-#    player_status(5, player_nbr) = moves(6, total_moves - moves_break)    'update last space
-#    player_status(9, player_nbr) = total_moves    'update last move
-#    
-#
-#    'initialize the cat counts
-#    If move_nbr = 1 Then    'players start with two cats each
-#      moves(7, total_moves - moves_break) = 2              'player 1
-#      moves(8, total_moves - moves_break) = 2              'player 2
-#      moves(9, total_moves - moves_break) = 2              'player 3
-#      moves(10, total_moves - moves_break) = 2             'player 4
-#      moves(11, total_moves - moves_break) = 50 - 2 * 4    'game tray
-#      moves(12, total_moves - moves_break) = 0             'animal shelter
-#    Else
-#      moves(7, total_moves - moves_break) = moves(7, total_moves - moves_break - 1)       'player 1
-#      moves(8, total_moves - moves_break) = moves(8, total_moves - moves_break - 1)       'player 2
-#      moves(9, total_moves - moves_break) = moves(9, total_moves - moves_break - 1)       'player 3
-#      moves(10, total_moves - moves_break) = moves(10, total_moves - moves_break - 1)     'player 4
-#      moves(11, total_moves - moves_break) = moves(11, total_moves - moves_break - 1)     'game tray
-#      moves(12, total_moves - moves_break) = moves(12, total_moves - moves_break - 1)     'animal shelter
-#    End If
-#    
+        # update the player location and move
+        players[p].location = moves[m].landing_space
+        players[p].prev_move_nbr = m
+     
+        # initialize the starting cat counts
+        for i in range(player_count):
+            setattr(moves[m], 'player_' + str(i+1) + '_cats', players[i].cats)
+         
+        if m == 0:    # first move
+            moves[m].game_tray_cats = 50 - 2*player_count
+            moves[m].animal_shelter_cats = 0
+        else:
+            moves[m].game_tray_cats = moves[m-1].game_tray_cats
+            moves[m].animal_shelter_cats = moves[m-1].animal_shelter_cats
+        
 #    
 #    'initialize locations
 #    moves(13, total_moves - moves_break) = player_status(5, 1)    'player 1
@@ -691,6 +654,13 @@ for game_nbr in range(total_games):
 #        player_status(7, player_nbr) = moves(6 + player_nbr, total_moves - moves_break)
 #
 #     End Select
+
+
+
+
+
+
+
 #
 #
 #    '--- end game ------------------------------
@@ -836,67 +806,4 @@ for game_nbr in range(total_games):
 #  
 #  MsgBox "Completed in " & Round(DateDiff("s", start_time, Now()) / 60, 1) & " minutes."
 #
-#End Sub
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#    
-#    
-#    
-#
-#class Enemy():
-#def __init__(self,ancestry,gear):
-#    self.enemy=ancestry
-#    self.weapon=gear
-#    self.hp=random.randrange(10,20)
-#    self.ac=random.randrange(12,20)
-#    self.alive=True
-#
-#def fight(self,tgt):
-#    print("You take a swing at the " + self.enemy + ".")
-#    hit=random.randrange(0,20)
-#
-#    if self.alive and hit > self.ac:
-#        print("You hit the " + self.enemy + " for " + str(hit) + " damage!")
-#        self.hp = self.hp - hit
-#        print("The " + self.enemy + " has " + str(self.hp) + " HP remaining")
-#    else:
-#        print("You missed.")
-#
-#    if self.hp < 1:
-#        self.alive=False
-#        
-#        
-## game start
-#foe=Enemy("troll","great axe")
-#print("You meet a " + foe.enemy + " wielding a " + foe.weapon)
-#
-## main loop
-#while True:
-#   
-#print("Type the a key and then RETURN to attack.")
-#    
-#action=input()
-#
-#if action.lower() == "a":
-#    foe.fight(foe)
-#            
-#if foe.alive == False:
-#    print("You have won...this time.")
 #    exit()
