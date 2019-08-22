@@ -153,6 +153,8 @@ for p in range(player_count):
 #------------------------------------------------------------------------------    
 #  play the game
 #------------------------------------------------------------------------------
+# all values are zero based until export
+g = 0    
 r = -1   # round
 m = -1    # move
 game_over = False
@@ -170,12 +172,12 @@ while game_over != True:
         m += 1
         
         moves.append(move())
-        moves[m].game_nbr = g+1
+        moves[m].game_nbr = g
         moves[m].round_nbr = r
         moves[m].move_nbr = m
-        moves[m].player_nbr = p+1
+        moves[m].player_nbr = p
         moves[m].spin_value = spin()
-        moves[m].player_prev_m = players[p].prev_move_nbr
+        moves[m].player_prev_move_nbr = players[p].prev_move_nbr
         moves[m].player_prev_location = players[p].location
     
     
@@ -202,166 +204,106 @@ while game_over != True:
         # update the player location and move
         players[p].location = moves[m].landing_space
         players[p].prev_move_nbr = m
+
      
-        # initialize the starting cat counts
-        for i in range(player_count):
-            setattr(moves[m], 'player_' + str(i+1) + '_cats', players[i].cats)
-         
+        # initialize cat counts based on the prior move         
         if m == 0:    # first move
             moves[m].game_tray_cats = 50 - 2*player_count
             moves[m].animal_shelter_cats = 0
         else:
             moves[m].game_tray_cats = moves[m-1].game_tray_cats
             moves[m].animal_shelter_cats = moves[m-1].animal_shelter_cats
+
+
+        # check for player(s) on the same space (take one of their cats)
+        for i in range(player_count):
+            if i != p \
+               and players[i].location == players[p].location \
+               and players[i].cats >= 0:
+                   
+                players[i].cats -= 1
+                players[p].cats += 1
+      
         
-#    
-#    'initialize locations
-#    moves(13, total_moves - moves_break) = player_status(5, 1)    'player 1
-#    moves(14, total_moves - moves_break) = player_status(5, 2)    'player 2
-#    moves(15, total_moves - moves_break) = player_status(5, 3)    'player 3
-#    moves(16, total_moves - moves_break) = player_status(5, 4)    'player 4
-#     
-#
-#    'check for player(s) on the same space (take one of their cats)
-#    For p = 1 To 4
-#      If p <> player_nbr And player_status(5, p) = moves(6, total_moves - moves_break) And moves(6 + p, total_moves - moves_break) > 0 Then
-#        'another player is on the same space and the player has at least one cat
-#        
-#        'take from other player
-#        moves(6 + p, total_moves - moves_break) = moves(6 + p, total_moves - moves_break) - 1
-#        player_status(7, p) = moves(6 + p, total_moves - moves_break)
-#        
-#        'add to current player
-#        moves(6 + player_nbr, total_moves - moves_break) = moves(6 + player_nbr, total_moves - moves_break) + 1
-#        player_status(7, player_nbr) = moves(6 + player_nbr, total_moves - moves_break)
-#      End If
-#    Next p
-#
-#
-#    'take action based on the space
+        # take action based on the space
 #select_move_action:
-#    If moves(6, total_moves - moves_break) = 1 _
-#       Or moves(6, total_moves - moves_break) = 28 Then    'start or branch point
-#          '(do nothing)
-#
-#
-#    '--- spaces with: gain 1 from game tray ------------------------------
-#    ElseIf moves(6, total_moves - moves_break) = 2 _
-#           Or moves(6, total_moves - moves_break) = 3 _
-#           Or moves(6, total_moves - moves_break) = 5 _
-#           Or moves(6, total_moves - moves_break) = 7 _
-#           Or moves(6, total_moves - moves_break) = 14 _
-#           Or moves(6, total_moves - moves_break) = 27 _
-#           Or moves(6, total_moves - moves_break) = 36 Then
-#      '2 = find a cat curled up in a wheelbarrow
-#      '3 = bribe a skittish cat with tuna treats
-#      '5 = pick up stray
-#      '7 = save a cat stuck in a tree
-#      '14 = find a stray by the railroad tracks
-#      '27 = kitten falls from sky into your pocket
-#      '36 = find a feral cat in a dumpster
-#
-#      'increment the current player
-#      If allow_tray_runout = False Or moves(11, total_moves - moves_break) >= 1 Then
-#        moves(6 + player_nbr, total_moves - moves_break) = moves(6 + player_nbr, total_moves - moves_break) + 1
-#          player_status(7, player_nbr) = moves(6 + player_nbr, total_moves - moves_break)   'increment the player status array
-#        moves(11, total_moves - moves_break) = moves(11, total_moves - moves_break) - 1  'decrement the game tray
-#      End If
-#
-#
-#    '--- gain from animal shelter ------------------------------
-#    ElseIf moves(6, total_moves - moves_break) = 32 _
-#           Or moves(6, total_moves - moves_break) = 33 Then
-#      '32 - rescue a grumpy old cat from the pound
-#      '33 - rescue all cats from the shelter
-#    
-#      'number of cats
-#      If moves(6, total_moves - moves_break) = 33 Then 'all cats from shelter
-#        c = moves(12, total_moves - moves_break)
-#      Else
-#        c = 1
-#      End If
-#      
-#      'if the flag has been set to allow shelter runout, then limit to the number in the shelter
-#      'otherwise, allow the shelter to go negative
-#      If allow_shelter_runout = True Then
-#        If c > moves(12, total_moves - moves_break) Then c = moves(12, total_moves - moves_break)
-#      End If
-#                
-#      'increment the current player
-#      moves(6 + player_nbr, total_moves - moves_break) = moves(6 + player_nbr, total_moves - moves_break) + c
-#        player_status(7, player_nbr) = moves(6 + player_nbr, total_moves - moves_break)    'increment the player status array
-#      moves(12, total_moves - moves_break) = moves(12, total_moves - moves_break) - c    'decrement the animal shelter
-#
-#
-#    '--- spin and gain from game tray ------------------------------
-#    ElseIf moves(6, total_moves - moves_break) = 20 _
-#           Or moves(6, total_moves - moves_break) = 23 _
-#           Or moves(6, total_moves - moves_break) = 39 Then
-#      '20 = supermarket
-#      '23 = pet store
-#      '39 = home
-#
-#      'number to gain
-#      c = spin()
-#
-#      'if flag was set to allow tray runout, limit to the number of cats in the tray
-#      'otherwise, allow the tray go negative
-#      If allow_tray_runout = True Then
-#        If c > moves(11, total_moves - moves_break) Then c = moves(11, total_moves - moves_break)
-#      End If
-#
-#      'increment the current player
-#      moves(6 + player_nbr, total_moves - moves_break) = moves(6 + player_nbr, total_moves - moves_break) + c
-#        player_status(7, player_nbr) = moves(6 + player_nbr, total_moves - moves_break)   'increment the player status array
-#      moves(11, total_moves - moves_break) = moves(11, total_moves - moves_break) - c  'decrement the game tray
-#
-#
-#    '--- lose to animal shelter ------------------------------
-#    ElseIf moves(6, total_moves - moves_break) = 4 _
-#           Or moves(6, total_moves - moves_break) = 9 _
-#           Or moves(6, total_moves - moves_break) = 10 _
-#           Or moves(6, total_moves - moves_break) = 15 _
-#           Or moves(6, total_moves - moves_break) = 19 _
-#           Or moves(6, total_moves - moves_break) = 35 Then
-#      '4 = beware of dog
-#      '9 = park - cat chases butterfly
-#      '10 = cat more interested in cardboard box
-#      '15 = kitten distracted by bit of fluff
-#      '19 = milk truck spill
-#      '35 = cat fight
-#
-#      'how many cats to remove
-#      Select Case moves(6, total_moves - moves_break)
-#        Case 19
-#          c = 3
-#        Case 35
-#          c = 2
-#        Case Else
-#          c = 1
-#      End Select
-#      If c > moves(6 + player_nbr, total_moves - moves_break) Then c = moves(6 + player_nbr, total_moves - moves_break)
-#
-#
-#      'remove cats from current player (if they have one)
-#      moves(6 + player_nbr, total_moves - moves_break) = moves(6 + player_nbr, total_moves - moves_break) - c
-#        player_status(7, player_nbr) = moves(6 + player_nbr, total_moves - moves_break)   'update the player status array
-#
-#      moves(12, total_moves - moves_break) = moves(12, total_moves - moves_break) + c  'increment the animal shelter
-#
-#
-#    '--- animal control confiscates half your cats, then go to start ------------------------------
-#    ElseIf moves(6, total_moves - moves_break) = 38 Then
-#
-#      'how many cats to remove
-#      c = Int(moves(6 + player_nbr, total_moves - moves_break) / 2)    'if an odd number, round down in the player's favor
-#
-#      'remove cats from current player (if they have one)
-#      moves(6 + player_nbr, total_moves - moves_break) = moves(6 + player_nbr, total_moves - moves_break) - c
-#        player_status(7, player_nbr) = moves(6 + player_nbr, total_moves - moves_break)   'increment the player status array
-#
-#      moves(12, total_moves - moves_break) = moves(12, total_moves - moves_break) + c  'increment the animal shelter
-#
+        
+        # start space or branch point
+        if moves[m].landing_space in [1, 28]:
+            pass
+        
+        # spaces where the player gains from the game tray
+        elif moves[m].landing_space in [2, 3, 5, 7, 14, 20, 23, 27, 36, 39]:
+            # gain 1:
+            # 2 = find a cat curled up in a wheelbarrow
+            # 3 = bribe a skittish cat with tuna treats
+            # 5 = pick up stray
+            # 7 = save a cat stuck in a tree
+            # 14 = find a stray by the railroad tracks
+            # 27 = kitten falls from sky into your pocket
+            # 36 = find a feral cat in a dumpster
+            
+            # spin and gain:
+            # 20 = supermarket
+            # 23 = pet store
+            # 39 = home
+            
+            if moves[m].landing_space in [20, 23, 39]:
+                c = spin()
+            else:
+                c = 1
+                
+            if c > moves[m].game_tray_cats and allow_tray_runout == True:
+                c = moves[m].game_tray_cats
+            
+            players[p].cats += c
+            moves[m].game_tray_cats -= c
+
+
+        # spaces where the player gains from the animal shelter 
+        elif moves[m].landing_space in [32, 33]:
+            # 32 - rescue a grumpy old cat from the pound
+            # 33 - rescue all cats from the shelter
+    
+            if moves[m].landing_space == 33:
+                c = moves[m].animal_shelter_cats
+            elif moves[m].animal_shelter_cats >= 1 or allow_shelter_runout == False:
+                c = 1
+           
+            players[p].cats += c
+            moves[m].animal_shelter_cats -= c
+        
+        # spaces where the player loses to the animal shelter
+        elif moves[m].landing_space in [4, 9, 10, 15, 19, 35]:
+            # 4 = beware of dog
+            # 9 = park - cat chases butterfly
+            # 10 = cat more interested in cardboard box
+            # 15 = kitten distracted by bit of fluff
+            # 19 = milk truck spill
+            # 35 = cat fight
+            
+            if moves[m].landing_space == 19:
+                c = 3
+            elif moves[m].landing_space == 35:
+                c = 2
+            else:
+                c = 1
+                
+            if players[p].cats < c:
+                c = players[p].cats
+      
+            players[p].cats -= c
+            moves[m].animal_shelter_cats += c
+            
+        # animal control confiscates half your cats, then go to start
+        elif moves[m].landing_space == 38: 
+            c = player[p].cats // 2    # if an odd number, round down
+            
+            player[p].cats -= c
+            moves[m].animal_shelter_cats += c
+            
+            # remember to record the other player locations and player cat counts at the end of each move
+            
 #
 #     'add new move
 #      move_nbr = move_nbr + 1
@@ -655,7 +597,22 @@ while game_over != True:
 #
 #     End Select
 
-
+        # initialize locations from the prior move and update the current player
+        for i in range(player_count):
+            if i == p:    # current player
+                setattr(moves[m], 'player_' + str(i+1) + '_location', \
+                        moves[m].location)
+            else:
+                setattr(moves[m], 'player_' + str(i+1) + '_location', \
+                        getattr(moves[m-1], 'player_' + str(i+1) + '_location'))
+                
+                # if another player is on the space, take one of their cats
+                if getattr(moves[m], 'player_' + str(i+1) + '_location') == \
+                   moves[m].location:
+                    
+                    # decrement other player
+                    setattr(moves[m], 'player_')
+  
 
 
 
