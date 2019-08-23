@@ -43,7 +43,6 @@ class move():
         self.player_2_location = 0
         self.player_3_location = 0
         self.player_4_location = 0
-        self.last_move = 0
         self.player_prev_move_nbr = 0
         self.player_prev_location = 0
 
@@ -52,6 +51,16 @@ def spin():
     """ return a number between 1 and 6 """
     return randrange(1,7)
 
+
+def end_move(move, players):
+    """
+    record the player locations and cat counts at the end of a move
+    """
+    
+    for p in range(len(players)):
+        setattr(move, 'player_' + str(p+1) + '_location', players[p].location)
+        setattr(move, 'player_' + str(p+1) + '_cats', players[p].cats)
+        
 
 def attr_list(list_name, attr_name):
     """
@@ -62,6 +71,19 @@ def attr_list(list_name, attr_name):
         attr_list.append(getattr(list_name[i], attr_name))
         
     return attr_list
+
+
+def attr_dict(list_name, attr_name):
+    """
+    For a list of objects, return a dictionary of the specified attribute,
+    where the key is the position in the list, and the value is the attribute
+    """
+    attr_dict = {}
+    for i in range(len(list_name)):
+        attr_dict[i] = getattr(list_name[i], attr_name)
+        
+    return attr_dict
+
 
 
   
@@ -180,7 +202,9 @@ while game_over != True:
         moves[m].player_prev_move_nbr = players[p].prev_move_nbr
         moves[m].player_prev_location = players[p].location
     
-    
+        players[p].prev_move_nbr = m
+
+        
         # find the landing space
         if players[p].location + moves[m].spin_value <= 28:
             # before the split
@@ -201,9 +225,8 @@ while game_over != True:
             if moves[m].landing_space > 40:
                 moves[m].landing_space = 40
 
-        # update the player location and move
+        # update the player location
         players[p].location = moves[m].landing_space
-        players[p].prev_move_nbr = m
 
      
         # initialize cat counts based on the prior move         
@@ -258,6 +281,18 @@ while game_over != True:
             
             players[p].cats += c
             moves[m].game_tray_cats -= c
+            
+ 
+        # spaces where the player loses to the game tray
+        elif moves[m].landing_space == 26:
+            # 26 = veterinarial
+
+            c = spin
+            if c > players[p].cats:
+                c = players[p].cats
+                
+            players[p].cats -= c
+            moves[m].game_tray_cats += c
 
 
         # spaces where the player gains from the animal shelter 
@@ -302,201 +337,115 @@ while game_over != True:
             player[p].cats -= c
             moves[m].animal_shelter_cats += c
             
-            # remember to record the other player locations and player cat counts at the end of each move
+            end_move(moves[m])
+    
+            #add new move
+            m += 1
+            moves.append(move())
+            moves[m].game_nbr = g
+            moves[m].round_nbr = r
+            moves[m].move_nbr = m
+            moves[m].player_nbr = p
+            moves[m].spin_value = ''
+            moves[m].player_prev_move_nbr = players[p].prev_move_nbr
+            moves[m].player_prev_location = players[p].location
             
-#
-#     'add new move
-#      move_nbr = move_nbr + 1
-#      total_moves = total_moves + 1
-#      ReDim Preserve moves(1 To 18, 1 To total_moves - moves_break)   'add a record
-#      moves(1, total_moves - moves_break) = game_nbr
-#      moves(2, total_moves - moves_break) = move_nbr
-#      moves(3, total_moves - moves_break) = turn_nbr
-#      moves(4, total_moves - moves_break) = player_status(2, player_nbr)
-#      moves(6, total_moves - moves_break) = 1    'start
-#      moves(7, total_moves - moves_break) = moves(7, total_moves - moves_break - 1)
-#      moves(8, total_moves - moves_break) = moves(8, total_moves - moves_break - 1)
-#      moves(9, total_moves - moves_break) = moves(9, total_moves - moves_break - 1)
-#      moves(10, total_moves - moves_break) = moves(10, total_moves - moves_break - 1)
-#      moves(11, total_moves - moves_break) = moves(11, total_moves - moves_break - 1)
-#      moves(12, total_moves - moves_break) = moves(12, total_moves - moves_break - 1)
-#      moves(13, total_moves - moves_break) = moves(13, total_moves - moves_break - 1)
-#      moves(14, total_moves - moves_break) = moves(14, total_moves - moves_break - 1)
-#      moves(15, total_moves - moves_break) = moves(15, total_moves - moves_break - 1)
-#      moves(16, total_moves - moves_break) = moves(16, total_moves - moves_break - 1)
-#      
-#      moves(17, total_moves - moves_break) = player_status(9, player_nbr)   'update last move nbr
-#      player_status(9, player_nbr) = total_moves
-#      
-#      moves(18, total_moves - moves_break) = player_status(5, player_nbr)
-#      player_status(5, player_nbr) = moves(6, total_moves - moves_break)    'update last space
-#
-#      GoTo select_move_action
-#
-#
-#    '--- lose to game tray (veterinarian) ------------------------------
-#    ElseIf moves(6, total_moves - moves_break) = 26 Then
-#
-#      'how many cats to remove
-#      c = Int(Rnd() * 6) + 1
-#      If c > moves(6 + player_nbr, total_moves - moves_break) Then c = moves(6 + player_nbr, total_moves - moves_break)
-#
-#      'remove cats from current player (if they have one)
-#      moves(6 + player_nbr, total_moves - moves_break) = moves(6 + player_nbr, total_moves - moves_break) - c
-#        player_status(7, player_nbr) = moves(6 + player_nbr, total_moves - moves_break)   'increment the player status array
-#
-#      moves(11, total_moves - moves_break) = moves(11, total_moves - moves_break) + c  'increment the game tray
-#
-#
-#    '--- spin again ------------------------------
-#    ElseIf moves(6, total_moves - moves_break) = 6 _
-#           Or moves(6, total_moves - moves_break) = 13 _
-#           Or moves(6, total_moves - moves_break) = 24 _
-#           Or moves(6, total_moves - moves_break) = 31 Then
-#      GoTo player_spin
-#
-#
-#    '--- lose next turn ------------------------------
-#    ElseIf moves(6, total_moves - moves_break) = 8 _
-#           Or moves(6, total_moves - moves_break) = 22 _
-#           Or moves(6, total_moves - moves_break) = 37 Then
-#      '8 = pick catnip
-#      '22 = stop to pet a cat
-#      '37 = hairball
-#
-#      player_status(6, player_nbr) = True    'skip next turn
-#      GoTo next_player
-#
-#
-#    '--- take 1 from any player ------------------------------
-#    ElseIf moves(6, total_moves - moves_break) = 11 _
-#           Or moves(6, total_moves - moves_break) = 17 Then
-#      '11 - catsit
-#      '17 - fall in love with neighborhood cat
-#
-#      'choose player
-#      If choose_highest = True Then    'fill the array with player(s) that have the most cats
-#        
-#        'find the highest number of cats
-#        j = 0
-#        For i = 1 To 4
-#          If i <> player_nbr And moves(6 + i, total_moves - moves_break) > j Then j = moves(6 + i, total_moves - moves_break)
-#        Next i
-#      
-#        If j = 0 Then GoTo next_player    'no cats to take
-#        
-#        'find the player(s) with the highest number of cats (possibility of tie)
-#        c = 0
-#        For i = 1 To 4
-#          If i <> player_nbr And moves(6 + i, total_moves - moves_break) = j Then    'not current player and has max cats
-#            c = c + 1
-#            ReDim Preserve available_players(1 To c)
-#            available_players(c) = i    'add this player to the array
-#          End If
-#        Next i
-#         
-#      Else    'pick a player at random - fill the array with any player with cats > 0
-#        c = 0
-#        For i = 1 To 4
-#          If i <> player_nbr And moves(6 + i, total_moves - moves_break) >= 1 Then    'not current player and has cats
-#            c = c + 1
-#            ReDim Preserve available_players(1 To c)
-#            available_players(c) = i    'add this player to the array
-#          End If
-#        Next i
-#  
-#        If c = 0 Then GoTo next_player    'no cats to take
-#          
-#      End If
-#      
-#      'pick from the array of available players
-#      r = Rnd()
-#      p = available_players(Int(r * c) + 1)
-#                
-#      'decrement the chosen player
-#      moves(6 + p, total_moves - moves_break) = moves(6 + p, total_moves - moves_break) - 1
-#      player_status(7, p) = moves(6 + p, total_moves - moves_break)
-#
-#      'increment the current player
-#      moves(6 + player_nbr, total_moves - moves_break) = moves(6 + player_nbr, total_moves - moves_break) + 1
-#      player_status(7, player_nbr) = moves(6 + player_nbr, total_moves - moves_break)    'increment the player status array
-#
-#
-#    '--- take 1 from each player ------------------------------
-#    ElseIf moves(6, total_moves - moves_break) = 30 Then
-#      '30 - catnip in your pocket lures cats
-#
-#      For p = 1 To 4
-#        If p <> player_nbr And moves(6 + p, total_moves - moves_break) >= 1 Then    'not the current player, and they have at least 1 cat
-#          'decrement the other player
-#          moves(6 + p, total_moves - moves_break) = moves(6 + p, total_moves - moves_break) - 1
-#          player_status(7, p) = moves(6 + p, total_moves - moves_break)
-#
-#          'increment the current player
-#          moves(6 + player_nbr, total_moves - moves_break) = moves(6 + player_nbr, total_moves - moves_break) + 1
-#          player_status(7, player_nbr) = moves(6 + player_nbr, total_moves - moves_break)
-#       End If
-#     Next p
-#
-#
-#    '--- go to another space ------------------------------
-#    ElseIf moves(6, total_moves - moves_break) = 12 _
-#           Or moves(6, total_moves - moves_break) = 16 _
-#           Or moves(6, total_moves - moves_break) = 18 _
-#           Or moves(6, total_moves - moves_break) = 21 _
-#           Or moves(6, total_moves - moves_break) = 29 _
-#           Or moves(6, total_moves - moves_break) = 34 Then
-#      '12 = kitty litter emergency (supermarket)
-#      '16 = forgot cat food coupons (return to start)
-#      '18 = pursue a mangy cat (park)
-#      '21 = sick cat (vet)
-#      '29 = hear the mews of caged cats (animal shelter)
-#      '34 = forgot flea collars (vet)
-#
-#      'add new move
-#      move_nbr = move_nbr + 1
-#      total_moves = total_moves + 1
-#      ReDim Preserve moves(1 To 18, 1 To total_moves - moves_break)   'add a record
-#      moves(1, total_moves - moves_break) = game_nbr
-#      moves(2, total_moves - moves_break) = move_nbr
-#      moves(3, total_moves - moves_break) = turn_nbr
-#      moves(4, total_moves - moves_break) = player_status(2, player_nbr)
-#      'leave row 5 (spin) blank
-#
-#      Select Case moves(6, total_moves - moves_break - 1)
-#        Case 12
-#          moves(6, total_moves - moves_break) = 20   'supermarket
-#        Case 16
-#          moves(6, total_moves - moves_break) = 1    'start
-#        Case 18
-#          moves(6, total_moves - moves_break) = 9    'park
-#        Case 21
-#          moves(6, total_moves - moves_break) = 26   'vet
-#        Case 29
-#          moves(6, total_moves - moves_break) = 33   'animal shelter
-#        Case 34
-#          moves(6, total_moves - moves_break) = 26   'vet
-#      End Select
-#
-#      moves(7, total_moves - moves_break) = moves(7, total_moves - moves_break - 1)
-#      moves(8, total_moves - moves_break) = moves(8, total_moves - moves_break - 1)
-#      moves(9, total_moves - moves_break) = moves(9, total_moves - moves_break - 1)
-#      moves(10, total_moves - moves_break) = moves(10, total_moves - moves_break - 1)
-#      moves(11, total_moves - moves_break) = moves(11, total_moves - moves_break - 1)
-#      moves(12, total_moves - moves_break) = moves(12, total_moves - moves_break - 1)
-#      moves(13, total_moves - moves_break) = moves(13, total_moves - moves_break - 1)
-#      moves(14, total_moves - moves_break) = moves(14, total_moves - moves_break - 1)
-#      moves(15, total_moves - moves_break) = moves(15, total_moves - moves_break - 1)
-#      moves(16, total_moves - moves_break) = moves(16, total_moves - moves_break - 1)
-#      
-#      moves(17, total_moves - moves_break) = player_status(9, player_nbr)
-#      player_status(9, player_nbr) = total_moves     'update previous move
-#
-#      moves(18, total_moves - moves_break) = player_status(5, player_nbr)
-#      player_status(5, player_nbr) = moves(6, total_moves - moves_break)    'update prev space
-#
-#
-#      GoTo select_move_action
+            players[p].prev_move_nbr = m
+            players[p].location = 1
+
+      GoTo select_move_action
+
+
+        # spin again
+        elif moves[m].location in [6, 13, 24, 31]:
+          GoTo player_spin
+    
+    
+        # lose next turn
+        elif moves[m].location in [8, 22, 37]:
+            # 8 pick catnip
+            # 22 stop to pet a cat
+            # 37 hairball
+        
+            players[p].skip_next_turn = True
+           
+            GoTo next_player
+
+    
+        # take one from any player
+        elif moves[m].location in [11, 17]:
+            # 11 catsit
+            # 17 fall in love with neighborhood cat
+    
+            # choose player
+            if choose_highest == True:
+                curr_cats = attr_dict(players, 'cats')
+                del curr_cats[p]    # ignore the current player
+              
+                max_cats = max(v for v in curr_cats.values())
+                max_dict = {k:v for (k,v) in curr_cats.items() if v == max_cats}
+            
+                take_from_player = list(max_dict.keys())[randrange(len(max_dict))]
+            else:    # choose a random player
+                player_nbrs = list(range(player_count))
+                del player_nbrs[p]
+                take_from_player = randrange(len(player_nbrs))
+              
+            if cats[take_from_player] > 0:
+                player[p].cats += 1
+                player[take_from_player] -= 1
+              
+        
+        # take one cat from each player
+        elif moves[m].location == 30:
+            # 30 catnip in your pocket lures cats
+
+            for i in range(player_count):
+                if i != p and players[i].cats > 0:
+                    player[p].cats += 1
+                    players[i].cats =- 1
+     
+      
+        # redirect to another space
+        elif moves[m].location in [12, 16, 18, 21, 29, 34]
+            # 12 kitty litter emergency (supermarket)
+            # 16 forgot cat food coupons (return to start)
+            # 18 pursue a mangy cat (park)
+            # 21 sick cat (vet)
+            # 29 hear the mews of caged cats (animal shelter)
+            # 34 forgot flea collars (vet)
+    
+            end_move(moves[m])
+            
+            # add new move
+            m += 1
+            moves.append(move())
+            moves[m].game_nbr = g
+            moves[m].round_nbr = r
+            moves[m].move_nbr = m
+            moves[m].player_nbr = p
+            moves[m].spin_value = ''
+            moves[m].player_prev_move_nbr = players[p].prev_move_nbr
+            moves[m].player_prev_location = players[p].location
+            
+            players[p].prev_move_nbr = m
+            
+            # set the new location
+            if moves[m-1].location == 12:
+                moves[m].location = 20    # supermarket
+            elif moves[m-1].location == 16:
+                moves[m].location = 1     #start
+            elif moves[m-1].location == 18:
+                moves[m].location == 9    # park
+            elif moves[m-1].location == 21:
+                moves[m].location == 26    # vet                
+            elif moves[m-1].location == 29:
+                moves[m].location == 33    # animal shelter
+            elif moves[m-1].location == 34:
+                moves[m].location == 26    # vet
+        
+        
+              GoTo select_move_action
 #
 #
 #    '--- wildcat ------------------------------
