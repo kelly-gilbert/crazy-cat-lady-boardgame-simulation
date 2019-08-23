@@ -19,9 +19,6 @@ class player():
         self.cats = 0
         self.win = 0
         self.prev_move_nbr = 0
-
-    def skip_next_turn(self):
-        self.skip_next_turn = True
         
 
 # Move class
@@ -52,6 +49,77 @@ def spin():
     return randrange(1,7)
 
 
+def generate_player_list(player_count):
+    """
+    generate a list of player objects to start a new game
+    """
+    
+    color_list = ['pink', 'blue', 'yellow', 'orange']   # clockwise order of colors  
+    players = []
+    
+    # spin to see which player goes first
+    # this isn't absolutely necessary (a starting player could be chosen at
+    # random), however, I wanted to simulate actual game play, including 
+    # tracking how many times the initial spin was tied
+    
+    initial_spins = []
+    tie_break_spins = {}
+    for p in range(player_count):
+        initial_spins.append(spin())
+        tie_break_spins[p] = initial_spins[p]    # duplicate the spins
+    
+    # tie break the initial spin, if necessary    
+    tie_break_loops = 0    
+    while sum(v > 0 for v in tie_break_spins.values()) > 1:
+        tied = False
+        max_spin = max(v for v in tie_break_spins.values())
+        
+        if sum(v == max_spin for v in tie_break_spins.values()) > 1:
+            tied = True
+    
+        if tied == True:
+            for k, v in tie_break_spins.items():
+                if v == max_spin:
+                    tie_break_spins[k] = spin()    # spin again
+                else:
+                    tie_break_spins[k] = 0    
+                    
+        else:    # not tied
+            for k, v in tie_break_spins.items():
+                if tie_break_loops == 0:
+                    tie_break_spins[k] = 0    # set all to zero
+                else:
+                   initial_spins[k] = v
+            break
+    
+        tie_break_loops += 1
+    
+        
+    # offset the player order, based on the initial spin
+    if tie_break_loops == 0:    # initial spin not tied
+        n = initial_spins.index(max_spin)
+    else:
+        n = [k for (k,v) in curr_cats.items() if v == max_spin][0]
+    
+    
+    # color offset
+    c = randrange(0, player_count)    
+    
+    for p in range(player_count):
+        players.append(player())
+    
+        # assign a color, in clockwise order
+        players[p].color = color_list[(p+c) % 4]
+    
+        players[p].initial_spin = initial_spins[(p+n) % player_count]
+        players[p].tie_break_spin = tie_break_spins[(p+n) % player_count]
+                
+        players[p].cats = 2
+        players[p].location = 1
+
+    return players
+
+
 def end_move(move, players):
     """
     record the player locations and cat counts at the end of a move
@@ -61,6 +129,10 @@ def end_move(move, players):
         setattr(move, 'player_' + str(p+1) + '_location', players[p].location)
         setattr(move, 'player_' + str(p+1) + '_cats', players[p].cats)
         
+
+def end_game():
+    pass  
+
 
 def attr_list(list_name, attr_name):
     """
@@ -97,7 +169,7 @@ choose_highest = True    # when given the option to take from/give to a player,
                          # choose the player with the most/fewest) cats
 allow_tray_runout = True       # allow the tray to run out
 allow_shelter_runout = True    # allow the animal shelter to run out
-color_list = ['pink', 'blue', 'yellow', 'orange']   # clockwise order of colors  
+
 
 
 #------------------------------------------------------------------------------    
@@ -107,92 +179,39 @@ color_list = ['pink', 'blue', 'yellow', 'orange']   # clockwise order of colors
 start_time = time.time()
   
 
-#for game_nbr in range(total_games):
+for game_nbr in range(total_games):
     
-#------------------------------------------------------------------------------    
-#  spin to see which player goes first
-#------------------------------------------------------------------------------
-initial_spins = []
-tie_break_spins = {}
-for p in range(player_count):
-    initial_spins.append(spin())
-    tie_break_spins[p] = initial_spins[p]    # duplicate the spins
-
-# tie break the initial spin, if necessary    
-tie_break_loops = 0    
-while sum(v > 0 for v in tie_break_spins.values()) > 1:
-    tied = False
-    max_spin = max(v for v in tie_break_spins.values())
+    # all values are zero based until export
+    g = 0    
+    r = 0    # round
+    m = 0    # move
+    p = 0    # player
+    game_over = False
     
-    if sum(v == max_spin for v in tie_break_spins.values()) > 1:
-        tied = True
-
-    if tied == True:
-        for k, v in tie_break_spins.items():
-            if v == max_spin:
-                tie_break_spins[k] = spin()    # spin again
-            else:
-                tie_break_spins[k] = 0    
-                
-    else:    # not tied
-        for k, v in tie_break_spins.items():
-            if tie_break_loops == 0:
-                tie_break_spins[k] = 0    # set all to zero
-            else:
-               initial_spins[k] = v
-        break
-
-    tie_break_loops += 1
-
+    # generate a list of players for this game
+    players = generate_player_list(player_count)
+   
+    # play the game
+    moves = []
     
-#------------------------------------------------------------------------------    
-# initialize the players, starting with the highest spin in element 0
-#------------------------------------------------------------------------------
+    while game_over != True:
     
-# spin order offset
-if tie_break_loops == 0:    # initial spin not tied
-    n = initial_spins.index(max_spin)
-else:
-    n = tie_break_spins.index(max_spin)
-
-# color offset
-c = randrange(0, player_count)    
-
-players = []
-for p in range(player_count):
-    players.append(player())
-
-    # assign a color, in clockwise order
-    players[p].color = color_list[(p+c) % 4]
-
-    players[p].initial_spin = initial_spins[(p+n) % player_count]
-    players[p].tie_break_spin = tie_break_spins[(p+n) % player_count]
+        # move to the next player
+        if m == 0:
+            p = 0
+        else:
+            p += 1
             
-    players[p].cats = 2
-    players[p].location = 1
-
-
-#------------------------------------------------------------------------------    
-#  play the game
-#------------------------------------------------------------------------------
-# all values are zero based until export
-g = 0    
-r = -1   # round
-m = -1    # move
-game_over = False
-
-moves = []
-while game_over != True:
-    r += 1
-  
-    for p in range(player_count):
+        # advance the round number
+        if m > 0:
+            if p == 0 and moves[m].player_nbr != p:
+                r += 1
+        
         # does this player skip a turn?
         if players[p].skip_next_turn == True:
             players[p].skip_next_turn = False    # reset the flag
             continue    # skip turn
-        
-        m += 1
-        
+                
         moves.append(move())
         moves[m].game_nbr = g
         moves[m].round_nbr = r
@@ -204,7 +223,7 @@ while game_over != True:
     
         players[p].prev_move_nbr = m
 
-        
+            
         # find the landing space
         if players[p].location + moves[m].spin_value <= 28:
             # before the split
@@ -228,7 +247,7 @@ while game_over != True:
         # update the player location
         players[p].location = moves[m].landing_space
 
-     
+             
         # initialize cat counts based on the prior move         
         if m == 0:    # first move
             moves[m].game_tray_cats = 50 - 2*player_count
@@ -247,11 +266,10 @@ while game_over != True:
                 players[i].cats -= 1
                 players[p].cats += 1
       
+            
+        # -- take action based on the space -----------------------------------
         
-        # take action based on the space
-#select_move_action:
-        
-        # start space or branch point
+        # start space or branch point (do nothing)
         if moves[m].landing_space in [1, 28]:
             pass
         
@@ -271,6 +289,7 @@ while game_over != True:
             # 23 = pet store
             # 39 = home
             
+            # number of cats
             if moves[m].landing_space in [20, 23, 39]:
                 c = spin()
             else:
@@ -304,9 +323,12 @@ while game_over != True:
                 c = moves[m].animal_shelter_cats
             elif moves[m].animal_shelter_cats >= 1 or allow_shelter_runout == False:
                 c = 1
+            else: 
+                c = 0
            
             players[p].cats += c
             moves[m].animal_shelter_cats -= c
+        
         
         # spaces where the player loses to the animal shelter
         elif moves[m].landing_space in [4, 9, 10, 15, 19, 35]:
@@ -330,6 +352,7 @@ while game_over != True:
             players[p].cats -= c
             moves[m].animal_shelter_cats += c
             
+            
         # animal control confiscates half your cats, then go to start
         elif moves[m].landing_space == 38: 
             c = player[p].cats // 2    # if an odd number, round down
@@ -337,10 +360,10 @@ while game_over != True:
             player[p].cats -= c
             moves[m].animal_shelter_cats += c
             
-            end_move(moves[m])
-    
             #add new move
+            end_move(moves[m])
             m += 1
+                        
             moves.append(move())
             moves[m].game_nbr = g
             moves[m].round_nbr = r
@@ -416,9 +439,9 @@ while game_over != True:
             # 34 forgot flea collars (vet)
     
             end_move(moves[m])
+            m += 1
             
             # add new move
-            m += 1
             moves.append(move())
             moves[m].game_nbr = g
             moves[m].round_nbr = r
@@ -446,169 +469,121 @@ while game_over != True:
         
         
               GoTo select_move_action
-#
-#
-#    '--- wildcat ------------------------------
-#    ElseIf moves(6, total_moves - moves_break) = 25 Then
-#
-#      'select wildcat card (1 of 4)
-#      c = Int(Rnd() * 4) + 1
-#      
-#      'perform action on card
-#      Select Case c
-#        
-#        Case 1
-#        'Your great aunt passes away, leaving you eight cats and a box of yarn.
-#      
-#          'number of cats to move
-#          c = 8
-#          If allow_tray_runout = True And moves(11, total_moves - moves_break) <= c Then c = moves(11, total_moves - moves_break)
-#                        
-#          'add cats to current player
-#          moves(6 + player_nbr, total_moves - moves_break) = moves(6 + player_nbr, total_moves - moves_break) + c
-#          player_status(7, player_nbr) = moves(6 + player_nbr, total_moves - moves_break)
-#
-#          'decrement the game tray
-#          moves(11, total_moves - moves_break) = moves(11, total_moves - moves_break) - c
-#
-#      Case 2
-#      'You are overcome with the intese desire to own every cat you see.
-#      'Each player spins, then gives you that many of their cats.
-#      
-#        For p = 1 To 4
-#          If p <> player_nbr Then    'not the current player
-#            c = spin()
-#            If moves(6 + p, total_moves - moves_break) < c Then c = moves(6 + p, total_moves - moves_break) 'player doesn't have enough cats
-#            
-#            'add c cats to current player
-#            moves(6 + player_nbr, total_moves - moves_break) = moves(6 + player_nbr, total_moves - moves_break) + c
-#            player_status(7, player_nbr) = moves(6 + player_nbr, total_moves - moves_break)
-#
-#            'remove c cats from player p
-#            moves(6 + p, total_moves - moves_break) = moves(6 + p, total_moves - moves_break) - c
-#            player_status(7, p) = moves(6 + p, total_moves - moves_break)
-#                         
-#          End If
-#        Next p
-#
-#      Case Else    'c = 3 or 4 (there are two copies of this card)
-#      'You feel sorry for a friend who doesn't have enough cats.
-#      'Choose a player, spin, then give them that many of your cats.
-#
-#        If moves(6 + player_nbr, total_moves - moves_break) = 0 Then GoTo next_player    'current player doesn't have any cats
-#        
-#        'choose a player
-#        If choose_highest Then    'choose the player with the lowest number of cats
-#        
-#          'find the lowest number of cats
-#          j = 9999
-#          For i = 1 To 4
-#            If i <> player_nbr And moves(6 + i, total_moves - moves_break) < j Then j = moves(6 + i, total_moves - moves_break)
-#          Next i
-#      
-#          'find the player(s) with the lowest number of cats (possibility of tie)
-#          c = 0
-#          For i = 1 To 4
-#            If i <> player_nbr And moves(6 + i, total_moves - moves_break) = j Then    'not current player and has max cats
-#              c = c + 1
-#              ReDim Preserve available_players(1 To c)
-#              available_players(c) = i    'add this player to the array
-#            End If
-#          Next i
-#           
-#        Else    'fill the array with all other players
-#          ReDim available_players(1 To 3)
-#          c = 0
-#          For i = 1 To 4
-#            If i <> player_nbr Then
-#              c = c + 1
-#              available_players(c) = i    'add this player to the array
-#            End If
-#          Next i
-#          
-#        End If
-#      
-#        'pick from the array of available players
-#        r = Rnd()
-#        p = available_players(Int(r * c) + 1)
-#        
-#        'number of cats
-#        c = spin()
-#        If c > moves(6 + player_nbr, total_moves - moves_break) Then c = moves(6 + player_nbr, total_moves - moves_break) 'current player doesn't have enough cats
-#        
-#        'add to the chosen player
-#        moves(6 + p, total_moves - moves_break) = moves(6 + p, total_moves - moves_break) + c
-#        player_status(7, p) = moves(6 + p, total_moves - moves_break)
-# 
-#        'remove from the current player
-#        moves(6 + player_nbr, total_moves - moves_break) = moves(6 + player_nbr, total_moves - moves_break) - c
-#        player_status(7, player_nbr) = moves(6 + player_nbr, total_moves - moves_break)
-#
-#     End Select
 
-        # initialize locations from the prior move and update the current player
-        for i in range(player_count):
-            if i == p:    # current player
-                setattr(moves[m], 'player_' + str(i+1) + '_location', \
-                        moves[m].location)
-            else:
-                setattr(moves[m], 'player_' + str(i+1) + '_location', \
-                        getattr(moves[m-1], 'player_' + str(i+1) + '_location'))
-                
-                # if another player is on the space, take one of their cats
-                if getattr(moves[m], 'player_' + str(i+1) + '_location') == \
-                   moves[m].location:
+
+        # wildcat card
+        elif moves[m].location == 25:
+            
+            # select a card at random (they are shuffled prior to each use)
+            n = randrange(0,4)
+          
+            if n == 0:
+                # Your great aunt passes away, leaving you eight cats 
+                # and a box of yarn.
+          
+                c = 8  
+                if moves[m].game_tray_cats < 8 and allow_tray_runout == True:
+                    c = moves[m].game_tray_cats
                     
-                    # decrement other player
-                    setattr(moves[m], 'player_')
+                players[p] += c
+                moves[m].game_tray_cats -= c
+            
+            elif n == 1:
+                # You are overcome with the intese desire to own 
+                # every cat you see.
+                # Each player spins, then gives you that many of their cats.
+          
+                for i in range(player_count):
+                    if i != p:
+                        c = spin()
+                        if players[i].cats < c:
+                            c = players[i].cats
+                    
+                    players[p] += c
+                    players[i] -= c
+    
+            else: 
+                # there are two copies of this card
+                # You feel sorry for a friend who doesn't have enough cats.
+                # Choose a player, spin, then give them that many of your cats.
+    
+                # choose player
+                if choose_highest == True:
+                    curr_cats = attr_dict(players, 'cats')
+                    del curr_cats[p]    # ignore the current player
+                  
+                    min_cats = min(v for v in curr_cats.values())
+                    min_dict = {k:v for (k,v) in curr_cats.items() if v == min_cats}
+                
+                    give_to_player = list(min_dict.keys())[randrange(len(min_dict))]
+                else:    # choose a random player
+                    player_nbrs = list(range(player_count))
+                    del player_nbrs[p]
+                    give_to_player = randrange(len(player_nbrs))
+                  
+                if player[p].cats > 0:
+                    player[p].cats -= 1
+                    player[give_to_player] += 1
+                  
+    
+
+    # next player
+    
+    # next round        
+    r += 1    
+
+    
+        '--- end game ------------------------------
+        ElseIf moves(6, total_moves - moves_break) = 40 Then
+          'find highest count
+          c = 0
+          j = 0    'max
+          For i = 1 To 4
+            If moves(6 + player_nbr, total_moves - moves_break) > j Then
+              j = moves(6 + player_nbr, total_moves - moves_break)
+            End If
+          Next i
+    
+          'mark the winner(s)
+          For i = 1 To 4
+            If moves(6 + i, total_moves - moves_break) = j Then
+              player_status(8, i) = 1
+            Else
+              player_status(8, i) = 0
+            End If
+          Next i
+          GoTo end_game
+
+
+
+
+
+  
+          end_move(move[m], players)
+
   
 
 
-
-
-
-#
-#
-#    '--- end game ------------------------------
-#    ElseIf moves(6, total_moves - moves_break) = 40 Then
-#      'find highest count
-#      c = 0
-#      j = 0    'max
-#      For i = 1 To 4
-#        If moves(6 + player_nbr, total_moves - moves_break) > j Then
-#          j = moves(6 + player_nbr, total_moves - moves_break)
-#        End If
-#      Next i
-#
-#      'mark the winner(s)
-#      For i = 1 To 4
-#        If moves(6 + i, total_moves - moves_break) = j Then
-#          player_status(8, i) = 1
-#        Else
-#          player_status(8, i) = 0
-#        End If
-#      Next i
-#      GoTo end_game
-#    
-#    End If
-#      
-#next_player:
-#  Next player_nbr
-#Loop    'round
-#  
-#end_game:
-#'copy ending player status
-#ReDim Preserve end_player_status(1 To 10, 1 To game_nbr * 4)
-#For j = 1 To 4
-#  For i = 1 To 10
-#    If i = 10 Then
-#      end_player_status(i, (game_nbr - 1) * 4 + j) = game_nbr
-#    Else
-#      end_player_status(i, (game_nbr - 1) * 4 + j) = player_status(i, j)
-#    End If
-#  Next i
-#Next j
-#  
+      
+        End If
+          
+    next_player:
+      Next player_nbr
+    Loop    'round
+      
+    end_game:
+    'copy ending player status
+    ReDim Preserve end_player_status(1 To 10, 1 To game_nbr * 4)
+    For j = 1 To 4
+      For i = 1 To 10
+        If i = 10 Then
+          end_player_status(i, (game_nbr - 1) * 4 + j) = game_nbr
+        Else
+          end_player_status(i, (game_nbr - 1) * 4 + j) = player_status(i, j)
+        End If
+      Next i
+    Next j
+          
 #  
 #If game_nbr Mod games_break = 0 Then    'if the game number is an increment of the break
 #  file_count = Int((game_nbr - 1) / games_break) + 1
