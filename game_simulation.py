@@ -195,6 +195,7 @@ def attr_dict(list_name, attr_name):
 # simulation settings
 #------------------------------------------------------------------------------
 game_count = 10         # number of games to simulate
+progress_frequency = 100    # print progress every n games
 player_count = 4
 allow_ties = False       # allow ties at the end of the game
 choose_highest = True    # when given the option to take from/give to a player, 
@@ -237,7 +238,7 @@ for game_nbr in range(game_count):
             if m == 0:
                 p = 0
             else:
-                p =  (p + 1) % 4
+                p = (p + 1) % 4
             
             # advance the round number
             if m > 0:
@@ -260,7 +261,9 @@ for game_nbr in range(game_count):
         
             players[p].prev_move_nbr = m
             print(moves[m].spin_value)
-    
+        
+        else:
+            continue_turn = False
                 
             # find the landing space
             if players[p].location + moves[m].spin_value <= 28:
@@ -418,10 +421,13 @@ for game_nbr in range(game_count):
             
             players[p].prev_move_nbr = m
             continue_turn = True   
+            continue
         
 
         # spin again
         elif moves[m].landing_space in [6, 13, 24, 31]:
+            # re-use the current player number (when the loop restarts, it 
+            # will add one to the player number)
             p -= 1
     
     
@@ -450,7 +456,7 @@ for game_nbr in range(game_count):
               
             if players[take_from_player].cats > 0:
                 players[p].cats += 1
-                players[take_from_player] -= 1
+                players[take_from_player].cats -= 1
               
         
         # take one cat from each player
@@ -501,7 +507,8 @@ for game_nbr in range(game_count):
             elif moves[m-1].landing_space == 34:
                 moves[m].landing_space == 26    # vet
         
-            continue_turn = True   
+            continue_turn = True 
+            continue
        
 
         # wildcat card
@@ -543,7 +550,7 @@ for game_nbr in range(game_count):
                 # choose player
                 if choose_highest == True:
                     min_dict = find_highest_player(players, False, p)                
-                    take_from_player = choice(list(min_dict.items()))[0]
+                    give_to_player = choice(list(min_dict.items()))[0]
                 else:    # choose a random player
                     player_nbrs = list(range(player_count))
                     del player_nbrs[p]
@@ -551,7 +558,7 @@ for game_nbr in range(game_count):
                   
                 if player[p].cats > 0:
                     player[p].cats -= 1
-                    player[give_to_player] += 1
+                    player[give_to_player].cats += 1
                   
     
         # home space - end game
@@ -577,9 +584,16 @@ for game_nbr in range(game_count):
         m += 1
 
 
-    # output the simulation results      
+    # append the simulation results      
     players_df = pd.DataFrame([vars(i) for i in players])
     players_df.to_csv(path_or_buf='player_output.csv', mode='a')
     
     games_df = pd.DataFrame([vars(i) for i in moves])
     games_df.to_csv(path_or_buf='games_output.csv', mode='a')
+
+    # print progress
+    if (g+1) % progress_frequency == 0:
+        print(str(g) + ' games completed...')
+     
+# simulation complete
+print('Done.')
