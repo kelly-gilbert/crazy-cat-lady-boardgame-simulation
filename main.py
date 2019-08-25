@@ -4,13 +4,16 @@
 
 """
 
-import time
+from time import time
 from random import randrange
+from random import choice
+import pandas as pd
 
 
 # Player class
 class player():
     def __init__(self):
+        self.game_nbr = 0
         self.color = ''
         self.initial_spin = 0
         self.tie_break_spin = 0
@@ -49,7 +52,7 @@ def spin():
     return randrange(1,7)
 
 
-def generate_player_list(player_count):
+def create_player_list(game_nbr, player_count):
     """
     generate a list of player objects to start a new game
     """
@@ -64,6 +67,7 @@ def generate_player_list(player_count):
     
     initial_spins = []
     tie_break_spins = {}
+    
     for p in range(player_count):
         initial_spins.append(spin())
         tie_break_spins[p] = initial_spins[p]    # duplicate the spins
@@ -109,6 +113,7 @@ def generate_player_list(player_count):
         players.append(player())
     
         # assign a color, in clockwise order
+        players[p].game_nbr = game_nbr
         players[p].color = color_list[(p+c) % 4]
     
         players[p].initial_spin = initial_spins[(p+n) % player_count]
@@ -118,6 +123,33 @@ def generate_player_list(player_count):
         players[p].location = 1
 
     return players
+
+
+def find_highest_player(players, find_highest, current_player=None):
+    """
+    returns a dictionary of player(s) with the highest/lowest cat count
+    
+    players = list of player objects
+    find_highest = boolean (True = find highest, False = find lowest)
+    optional argument = the current player's number
+    """
+
+    curr_cats = attr_dict(players, 'cats')
+    
+    # if specified, ignore the current player
+    if current_player is not None:
+        del curr_cats[p]    
+    
+    # find the min or max number of cats
+    if find_highest == True:
+        max_cats = max(v for v in curr_cats.values())
+    else:
+        max_cats = min(v for v in curr_cats.values())
+    
+    # return a dictionary of players that match
+    max_dict = {k:v for (k,v) in curr_cats.items() if v == max_cats}
+
+    return max_dict
 
 
 def end_move(move, players):
@@ -160,26 +192,26 @@ def attr_dict(list_name, attr_name):
 
   
 #------------------------------------------------------------------------------    
-# initialize variables
+# simulation settings
 #------------------------------------------------------------------------------
+game_count = 10         # number of games to simulate
 player_count = 4
-total_games = 10       # number of games to simulate
-path_th = 10             # threshold for entering the branched path
+allow_ties = False       # allow ties at the end of the game
 choose_highest = True    # when given the option to take from/give to a player, 
                          # choose the player with the most/fewest) cats
 allow_tray_runout = True       # allow the tray to run out
 allow_shelter_runout = True    # allow the animal shelter to run out
 
+path_th = 10             # threshold for entering the branched path
 
 
 #------------------------------------------------------------------------------    
 #  cycle through simulated games
 #------------------------------------------------------------------------------
     
-start_time = time.time()
+start_time = time()
   
-
-for game_nbr in range(total_games):
+for game_nbr in range(game_count):
     
     # all values are zero based until export
     g = 0    
@@ -190,14 +222,12 @@ for game_nbr in range(total_games):
     continue_turn = False
     
     # generate a list of players for this game
-    players = generate_player_list(player_count)
+    players = create_player_list(g, player_count)
    
     # play the game
     moves = []
     
     while game_over != True:
-        
-
         
         if continue_turn == False:
             # if it is not a redirect, initialize the move and get the
@@ -392,7 +422,6 @@ for game_nbr in range(total_games):
 
         # spin again
         elif moves[m].landing_space in [6, 13, 24, 31]:
-            end_move(moves[m], players)
             p -= 1
     
     
@@ -412,13 +441,8 @@ for game_nbr in range(total_games):
     
             # choose player
             if choose_highest == True:
-                curr_cats = attr_dict(players, 'cats')
-                del curr_cats[p]    # ignore the current player
-              
-                max_cats = max(v for v in curr_cats.values())
-                max_dict = {k:v for (k,v) in curr_cats.items() if v == max_cats}
-            
-                take_from_player = list(max_dict.keys())[randrange(len(max_dict))]
+                max_dict = find_highest_player(players, True, p)                
+                take_from_player = choice(list(max_dict.items()))[0]
             else:    # choose a random player
                 player_nbrs = list(range(player_count))
                 del player_nbrs[p]
@@ -518,13 +542,8 @@ for game_nbr in range(total_games):
     
                 # choose player
                 if choose_highest == True:
-                    curr_cats = attr_dict(players, 'cats')
-                    del curr_cats[p]    # ignore the current player
-                  
-                    min_cats = min(v for v in curr_cats.values())
-                    min_dict = {k:v for (k,v) in curr_cats.items() if v == min_cats}
-                
-                    give_to_player = list(min_dict.keys())[randrange(len(min_dict))]
+                    min_dict = find_highest_player(players, False, p)                
+                    take_from_player = choice(list(min_dict.items()))[0]
                 else:    # choose a random player
                     player_nbrs = list(range(player_count))
                     del player_nbrs[p]
@@ -535,147 +554,32 @@ for game_nbr in range(total_games):
                     player[give_to_player] += 1
                   
     
-        # end game
+        # home space - end game
         elif moves[m].landing_space == 40:
-#            'find highest count
-#            c = 0
-#            j = 0    'max
-#            For i = 1 To 4
-#              If moves(6 + player_nbr, total_moves - moves_break) > j Then
-#                j = moves(6 + player_nbr, total_moves - moves_break)
-#              End If
-#            Next i
-#    
-#            'mark the winner(s)
-#            For i = 1 To 4
-#              If moves(6 + i, total_moves - moves_break) = j Then
-#                player_status(8, i) = 1
-#              Else
-#                player_status(8, i) = 0
-#              End If
-#            Next i
-#          
+            
+            # find highest player
+            max_dict = find_highest_player(players, True)
+            
+            # if tied
+            if allow_ties == True and len(max_dict) > 1:
+                pass
+            
+            # mark the winner(s)
+            for k in range(max_dict.keys()):
+                players[k].win = 1
+            
             game_over = True  
+            break
 
 
+        # end the move
         end_move(moves[m], players)
         m += 1
 
-  
-#end_game:
-#'copy ending player status
-#ReDim Preserve end_player_status(1 To 10, 1 To game_nbr * 4)
-#For j = 1 To 4
-#  For i = 1 To 10
-#    If i = 10 Then
-#      end_player_status(i, (game_nbr - 1) * 4 + j) = game_nbr
-#    Else
-#      end_player_status(i, (game_nbr - 1) * 4 + j) = player_status(i, j)
-#    End If
-#  Next i
-#Next j
-#      
-#  
-#If game_nbr Mod games_break = 0 Then    'if the game number is an increment of the break
-#  file_count = Int((game_nbr - 1) / games_break) + 1
-#  
-#  On Error Resume Next
-#  Sheets("moves" & file_count).Select
-#  If Err.Number <> 0 Then
-#    'create the sheet
-#    ActiveWorkbook.Sheets.Add
-#    Err.Clear
-#  End If
-#
-#  Cells.Select
-#  Selection.Clear
-#
-#  'add a header for the moves sheet(s)
-#  Range("a1").Select
-#  ActiveCell.Offset(0, 0).Value = "game_nbr"
-#  ActiveCell.Offset(0, 1).Value = "move_nbr"
-#  ActiveCell.Offset(0, 2).Value = "round_nbr"
-#  ActiveCell.Offset(0, 3).Value = "player_color"
-#  ActiveCell.Offset(0, 4).Value = "spin"
-#  ActiveCell.Offset(0, 5).Value = "landing_space"
-#  ActiveCell.Offset(0, 6).Value = "cats_player1"
-#  ActiveCell.Offset(0, 7).Value = "cats_player2"
-#  ActiveCell.Offset(0, 8).Value = "cats_player3"
-#  ActiveCell.Offset(0, 9).Value = "cats_player4"
-#  ActiveCell.Offset(0, 10).Value = "cats_tray"
-#  ActiveCell.Offset(0, 11).Value = "cats_shelter"
-#  ActiveCell.Offset(0, 12).Value = "location_player1"
-#  ActiveCell.Offset(0, 13).Value = "location_player2"
-#  ActiveCell.Offset(0, 14).Value = "location_player3"
-#  ActiveCell.Offset(0, 15).Value = "location_player4"
-#  ActiveCell.Offset(0, 16).Value = "previous_move_nbr"
-#  ActiveCell.Offset(0, 17).Value = "previous_location"
-#  Range("a1").Select
-#
-#  For i = 1 To total_moves - moves_break
-#    For j = 1 To 18
-#      ActiveCell.Offset(i, j - 1).Value = moves(j, i)
-#    Next j
-#  Next i
-#  
-#  Sheets("moves" & file_count).Select
-#  Sheets("moves" & file_count).Copy
-#  ChDir curr_path
-#  Application.DisplayAlerts = False
-#  ActiveWorkbook.SaveAs Filename:= _
-#      curr_path & "\ccl_simulation_output_moves" & file_count & ".csv" _
-#      , FileFormat:=xlCSV, CreateBackup:=False
-#  ActiveWorkbook.Save
-#  ActiveWindow.Close
-#  Application.DisplayAlerts = True
-#  
-#  Workbooks(curr_file).Activate
-#  moves_break = total_moves
-#End If
-#   
-#  Next game_nbr    'game
-#
-#
-#  'simulated games complete.
-#  
-#  'output the ending status for each player
-#  Sheets("end_player_status").Select
-#  Cells.Select
-#  Selection.Clear
-#  Range("a1").Select
-#  ActiveCell.Offset(0, 0).Value = "player_nbr"
-#  ActiveCell.Offset(0, 1).Value = "player_color"
-#  ActiveCell.Offset(0, 2).Value = "initial_spin"
-#  ActiveCell.Offset(0, 3).Value = "initial_spin_tie_break"
-#  ActiveCell.Offset(0, 4).Value = "last_space"
-#  ActiveCell.Offset(0, 5).Value = "skip_next_turn"
-#  ActiveCell.Offset(0, 6).Value = "cats"
-#  ActiveCell.Offset(0, 7).Value = "win"
-#  ActiveCell.Offset(0, 8).Value = "previous_move_nbr"
-#  ActiveCell.Offset(0, 9).Value = "game_nbr"
-#  
-#  For i = 1 To (game_nbr - 1) * 4
-#For j = 1 To 10
-#  ActiveCell.Offset(i, j - 1).Value = end_player_status(j, i)
-#Next j
-#  Next i
-#
-#  Sheets("end_player_status").Select
-#  Sheets("end_player_status").Copy
-#  ChDir curr_path
-#  Application.DisplayAlerts = False
-#  ActiveWorkbook.SaveAs Filename:= _
-#  curr_path & "\ccl_simulation_output_end_status.csv" _
-#  , FileFormat:=xlCSV, CreateBackup:=False
-#  ActiveWorkbook.Save
-#  ActiveWindow.Close
-#  Application.DisplayAlerts = True
-#  
-#  Workbooks(curr_file).Activate
-#  
-#  
-#  Application.ScreenUpdating = True
-#  
-#  MsgBox "Completed in " & Round(DateDiff("s", start_time, Now()) / 60, 1) & " minutes."
-#
-#    exit()
+
+    # output the simulation results      
+    players_df = pd.DataFrame([vars(i) for i in players])
+    players_df.to_csv(path_or_buf='player_output.csv', mode='a')
+    
+    games_df = pd.DataFrame([vars(i) for i in moves])
+    games_df.to_csv(path_or_buf='games_output.csv', mode='a')
