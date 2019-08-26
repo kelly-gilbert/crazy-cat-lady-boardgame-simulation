@@ -209,13 +209,12 @@ path_th = 10             # threshold for entering the branched path
 #------------------------------------------------------------------------------    
 #  cycle through simulated games
 #------------------------------------------------------------------------------
-    
-start_time = time()
   
-for game_nbr in range(game_count):
+for g in range(game_count):
     
-    # all values are zero based until export
-    g = 0    
+    start_time = time()
+    
+    # all values are zero based until export  
     r = 0    # round
     m = 0    # move
     p = 0    # player
@@ -260,11 +259,8 @@ for game_nbr in range(game_count):
             moves[m].player_prev_location = players[p].location
         
             players[p].prev_move_nbr = m
-            print(moves[m].spin_value)
         
-        else:
-            continue_turn = False
-                
+               
             # find the landing space
             if players[p].location + moves[m].spin_value <= 28:
                 # before the split
@@ -279,16 +275,17 @@ for game_nbr in range(game_count):
                                                   
             else:    # enough cats for lower path OR already on lower path
                 moves[m].landing_space = players[p].location + moves[m].spin_value
-                if player[p].location <= 28:
+                if players[p].location <= 28:
                     moves[m].landing_space += 5
                 
                 if moves[m].landing_space > 40:
                     moves[m].landing_space = 40
-
+        
+        else:
+            continue_turn = False
 
         # update the player location
         players[p].location = moves[m].landing_space
-        print(players[p].location)
 
                  
         # initialize cat counts based on the prior move         
@@ -305,7 +302,7 @@ for game_nbr in range(game_count):
             if i != p \
                and moves != 0 \
                and players[i].location == players[p].location \
-               and players[i].cats >= 0:
+               and players[i].cats > 0:
                    
                 players[i].cats -= 1
                 players[p].cats += 1
@@ -344,36 +341,7 @@ for game_nbr in range(game_count):
             
             players[p].cats += c
             moves[m].game_tray_cats -= c
-            print(attr_list(players, 'cats'))
-            print(moves[m].game_tray_cats)
- 
-        # spaces where the player loses to the game tray
-        elif moves[m].landing_space == 26:
-            # 26 = veterinarial
-
-            c = spin
-            if c > players[p].cats:
-                c = players[p].cats
-                
-            players[p].cats -= c
-            moves[m].game_tray_cats += c
-
-
-        # spaces where the player gains from the animal shelter 
-        elif moves[m].landing_space in [32, 33]:
-            # 32 - rescue a grumpy old cat from the pound
-            # 33 - rescue all cats from the shelter
-    
-            if moves[m].landing_space == 33:
-                c = moves[m].animal_shelter_cats
-            elif moves[m].animal_shelter_cats >= 1 or allow_shelter_runout == False:
-                c = 1
-            else: 
-                c = 0
-           
-            players[p].cats += c
-            moves[m].animal_shelter_cats -= c
-        
+            
         
         # spaces where the player loses to the animal shelter
         elif moves[m].landing_space in [4, 9, 10, 15, 19, 35]:
@@ -395,34 +363,8 @@ for game_nbr in range(game_count):
                 c = players[p].cats
       
             players[p].cats -= c
-            moves[m].animal_shelter_cats += c
-            
-            
-        # animal control confiscates half your cats, then go to start
-        elif moves[m].landing_space == 38: 
-            c = player[p].cats // 2    # if an odd number, round down
-            
-            player[p].cats -= c
-            moves[m].animal_shelter_cats += c
-            
-            #add new move
-            end_move(moves[m], players)
-            m += 1
-                        
-            moves.append(move())
-            moves[m].game_nbr = g
-            moves[m].round_nbr = r
-            moves[m].move_nbr = m
-            moves[m].player_nbr = p
-            moves[m].spin_value = ''
-            moves[m].player_prev_move_nbr = players[p].prev_move_nbr
-            moves[m].player_prev_location = players[p].location
-            moves[m].landing_space = 1
-            
-            players[p].prev_move_nbr = m
-            continue_turn = True   
-            continue
-        
+            moves[m].animal_shelter_cats += c 
+
 
         # spin again
         elif moves[m].landing_space in [6, 13, 24, 31]:
@@ -452,23 +394,13 @@ for game_nbr in range(game_count):
             else:    # choose a random player
                 player_nbrs = list(range(player_count))
                 del player_nbrs[p]
-                take_from_player = randrange(len(player_nbrs))
+                take_from_player = choice(player_nbrs)
               
             if players[take_from_player].cats > 0:
                 players[p].cats += 1
                 players[take_from_player].cats -= 1
               
         
-        # take one cat from each player
-        elif moves[m].landing_space == 30:
-            # 30 catnip in your pocket lures cats
-
-            for i in range(player_count):
-                if i != p and players[i].cats > 0:
-                    player[p].cats += 1
-                    players[i].cats =- 1
-     
-      
         # redirect to another space
         elif moves[m].landing_space in [12, 16, 18, 21, 29, 34]:
             # 12 kitty litter emergency (supermarket)
@@ -499,13 +431,13 @@ for game_nbr in range(game_count):
             elif moves[m-1].landing_space == 16:
                 moves[m].landing_space = 1     #start
             elif moves[m-1].landing_space == 18:
-                moves[m].landing_space == 9    # park
+                moves[m].landing_space = 9    # park
             elif moves[m-1].landing_space == 21:
-                moves[m].landing_space == 26    # vet                
+                moves[m].landing_space = 26    # vet                
             elif moves[m-1].landing_space == 29:
-                moves[m].landing_space == 33    # animal shelter
+                moves[m].landing_space = 33    # animal shelter
             elif moves[m-1].landing_space == 34:
-                moves[m].landing_space == 26    # vet
+                moves[m].landing_space = 26    # vet
         
             continue_turn = True 
             continue
@@ -525,7 +457,7 @@ for game_nbr in range(game_count):
                 if moves[m].game_tray_cats < 8 and allow_tray_runout == True:
                     c = moves[m].game_tray_cats
                     
-                players[p] += c
+                players[p].cats += c
                 moves[m].game_tray_cats -= c
             
             elif n == 1:
@@ -539,8 +471,8 @@ for game_nbr in range(game_count):
                         if players[i].cats < c:
                             c = players[i].cats
                     
-                    players[p] += c
-                    players[i] -= c
+                    players[p].cats += c
+                    players[i].cats -= c
     
             else: 
                 # there are two copies of this card
@@ -555,12 +487,79 @@ for game_nbr in range(game_count):
                     player_nbrs = list(range(player_count))
                     del player_nbrs[p]
                     give_to_player = randrange(len(player_nbrs))
+                    
+                c = spin()
+                if c > players[p].cats:
+                    c = players[p].cats
                   
-                if player[p].cats > 0:
-                    player[p].cats -= 1
-                    player[give_to_player].cats += 1
-                  
+                players[p].cats -= c
+                players[give_to_player].cats += c
+              
     
+        # spaces where the player loses to the game tray
+        elif moves[m].landing_space == 26:
+            # 26 = veterinarian
+
+            c = spin()
+            if c > players[p].cats:
+                c = players[p].cats
+                
+            players[p].cats -= c
+            moves[m].game_tray_cats += c
+
+
+        # take one cat from each player
+        elif moves[m].landing_space == 30:
+            # 30 catnip in your pocket lures cats
+
+            for i in range(player_count):
+                if i != p and players[i].cats > 0:
+                    players[p].cats += 1
+                    players[i].cats -= 1
+     
+      
+        # spaces where the player gains from the animal shelter 
+        elif moves[m].landing_space in [32, 33]:
+            # 32 - rescue a grumpy old cat from the pound
+            # 33 - rescue all cats from the shelter
+    
+            if moves[m].landing_space == 33:
+                c = moves[m].animal_shelter_cats
+            elif moves[m].animal_shelter_cats >= 1 or allow_shelter_runout == False:
+                c = 1
+            else: 
+                c = 0
+           
+            players[p].cats += c
+            moves[m].animal_shelter_cats -= c
+            
+            
+        # animal control confiscates half your cats, then go to start
+        elif moves[m].landing_space == 38: 
+            c = players[p].cats // 2    # if an odd number, round down
+            
+            players[p].cats -= c
+            moves[m].animal_shelter_cats += c
+            
+            #add new move
+            end_move(moves[m], players)
+            m += 1
+                        
+            moves.append(move())
+            moves[m].game_nbr = g
+            moves[m].round_nbr = r
+            moves[m].move_nbr = m
+            moves[m].player_nbr = p
+            moves[m].spin_value = ''
+            moves[m].player_prev_move_nbr = players[p].prev_move_nbr
+            moves[m].player_prev_location = players[p].location
+            moves[m].landing_space = 1
+            
+            players[p].prev_move_nbr = m
+            continue_turn = True   
+            continue
+        
+
         # home space - end game
         elif moves[m].landing_space == 40:
             
@@ -572,25 +571,41 @@ for game_nbr in range(game_count):
                 pass
             
             # mark the winner(s)
-            for k in range(max_dict.keys()):
+            for k in max_dict.keys():
                 players[k].win = 1
             
             game_over = True  
-            break
 
 
         # end the move
+        #print(attr_list(players, 'cats'))
+        #print(moves[m].game_tray_cats)
+        #print(moves[m].animal_shelter_cats)
         end_move(moves[m], players)
         m += 1
 
 
-    # append the simulation results      
+    # append the simulation results    
+    if g == 0:
+        output_headers = True
+        output_mode = 'w'
+    else:
+        output_headers = False
+        output_mode = 'a'
+        
     players_df = pd.DataFrame([vars(i) for i in players])
-    players_df.to_csv(path_or_buf='player_output.csv', mode='a')
+    players_df.to_csv(path_or_buf='player_output.csv', mode=output_mode, \
+                      index=False, header=output_headers)
     
-    games_df = pd.DataFrame([vars(i) for i in moves])
-    games_df.to_csv(path_or_buf='games_output.csv', mode='a')
-
+    moves_df = pd.DataFrame([vars(i) for i in moves])
+    moves_df.to_csv(path_or_buf='moves_output.csv', mode=output_mode, \
+                    index=False, header=output_headers)
+    
+    games_df = pd.DataFrame.from_dict(data={'game_nbr':[g], 'run_time_ms':[(time() - start_time)]})
+    games_df    
+    games_df.to_csv(path_or_buf='games_output.csv', mode=output_mode, \
+                    index=False, header=output_headers)
+    
     # print progress
     if (g+1) % progress_frequency == 0:
         print(str(g) + ' games completed...')
