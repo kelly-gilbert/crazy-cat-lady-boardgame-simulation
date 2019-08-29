@@ -119,7 +119,7 @@ def create_player_list(game_nbr, player_count):
         players[p].initial_spin = initial_spins[(p+n) % player_count]
         players[p].tie_break_spin = tie_break_spins[(p+n) % player_count]
                 
-        players[p].cats = 2
+        players[p].cats = starting_cat_count
         players[p].location = 1
 
     return players
@@ -194,14 +194,19 @@ def attr_dict(list_name, attr_name):
 #------------------------------------------------------------------------------    
 # simulation settings
 #------------------------------------------------------------------------------
-game_count = 10         # number of games to simulate
-progress_frequency = 100    # print progress every n games
+game_count = 10000             # number of games to simulate
+progress_frequency = 1000      # print progress every n games
 player_count = 4
-allow_ties = False       # allow ties at the end of the game
 choose_highest = True    # when given the option to take from/give to a player, 
                          # choose the player with the most/fewest) cats
 allow_tray_runout = True       # allow the tray to run out
 allow_shelter_runout = True    # allow the animal shelter to run out
+
+tray_factor = 1                # multipliers for number of cats gained/lost
+shelter_factor = 1             #    to allow house rules (default = 1)
+player_factor = 1
+
+starting_cat_count = 2         # starting cat count for each player (default=2)
 
 path_th = 10             # threshold for entering the branched path
 
@@ -286,11 +291,10 @@ for g in range(game_count):
 
         # update the player location
         players[p].location = moves[m].landing_space
-
                  
         # initialize cat counts based on the prior move         
         if m == 0:    # first move
-            moves[m].game_tray_cats = 50 - 2*player_count
+            moves[m].game_tray_cats = 50 - starting_cat_count*player_count
             moves[m].animal_shelter_cats = 0
         else:
             moves[m].game_tray_cats = moves[m-1].game_tray_cats
@@ -304,11 +308,19 @@ for g in range(game_count):
                and players[i].location == players[p].location \
                and players[i].cats > 0:
                    
-                players[i].cats -= 1
-                players[p].cats += 1
+                players[i].cats -= 1 * player_factor
+                players[p].cats += 1 * player_factor
       
-        
-        # -- take action based on the space -----------------------------------
+    
+#        print(players[p].location)
+#        print(attr_list(players, 'cats'))
+#        print(moves[m].animal_shelter_cats)
+#        print(moves[m].game_tray_cats)
+
+    
+#------------------------------------------------------------------------------    
+#       take action based on the landing space
+#-----------------------------------------------------------------------------
         
         # start space or branch point (do nothing)
         if moves[m].landing_space in [1, 28]:
@@ -332,9 +344,9 @@ for g in range(game_count):
             
             # number of cats
             if moves[m].landing_space in [20, 23, 39]:
-                c = spin()
+                c = spin() * tray_factor
             else:
-                c = 1
+                c = 1 * tray_factor
                 
             if c > moves[m].game_tray_cats and allow_tray_runout == True:
                 c = moves[m].game_tray_cats
@@ -353,11 +365,11 @@ for g in range(game_count):
             # 35 = cat fight
             
             if moves[m].landing_space == 19:
-                c = 3
+                c = 3 * player_factor
             elif moves[m].landing_space == 35:
-                c = 2
+                c = 2 * player_factor
             else:
-                c = 1
+                c = 1 * player_factor
                 
             if players[p].cats < c:
                 c = players[p].cats
@@ -396,9 +408,13 @@ for g in range(game_count):
                 del player_nbrs[p]
                 take_from_player = choice(player_nbrs)
               
-            if players[take_from_player].cats > 0:
-                players[p].cats += 1
-                players[take_from_player].cats -= 1
+            c = 1 * player_factor
+            
+            if players[take_from_player].cats < c:
+                c = players[take_from_player].cats
+                
+            players[p].cats += c
+            players[take_from_player].cats -= c
               
         
         # redirect to another space
@@ -453,8 +469,9 @@ for g in range(game_count):
                 # Your great aunt passes away, leaving you eight cats 
                 # and a box of yarn.
           
-                c = 8  
-                if moves[m].game_tray_cats < 8 and allow_tray_runout == True:
+                c = 8 * tray_factor
+                
+                if moves[m].game_tray_cats < c and allow_tray_runout == True:
                     c = moves[m].game_tray_cats
                     
                 players[p].cats += c
@@ -467,7 +484,8 @@ for g in range(game_count):
           
                 for i in range(player_count):
                     if i != p:
-                        c = spin()
+                        c = spin() * player_factor
+                        
                         if players[i].cats < c:
                             c = players[i].cats
                     
@@ -488,7 +506,8 @@ for g in range(game_count):
                     del player_nbrs[p]
                     give_to_player = randrange(len(player_nbrs))
                     
-                c = spin()
+                c = spin() * player_factor
+                
                 if c > players[p].cats:
                     c = players[p].cats
                   
@@ -500,7 +519,8 @@ for g in range(game_count):
         elif moves[m].landing_space == 26:
             # 26 = veterinarian
 
-            c = spin()
+            c = spin() * player_factor
+            
             if c > players[p].cats:
                 c = players[p].cats
                 
@@ -512,10 +532,16 @@ for g in range(game_count):
         elif moves[m].landing_space == 30:
             # 30 catnip in your pocket lures cats
 
+            c = 1 * player_factor
+            
             for i in range(player_count):
-                if i != p and players[i].cats > 0:
-                    players[p].cats += 1
-                    players[i].cats -= 1
+                if i != p:
+                    if players[i].cats < c:
+                        players[p].cats += players[i].cats
+                        players[i].cats = 0
+                    else:
+                        players[p].cats += c
+                        players[i].cats -= c
      
       
         # spaces where the player gains from the animal shelter 
@@ -525,16 +551,19 @@ for g in range(game_count):
     
             if moves[m].landing_space == 33:
                 c = moves[m].animal_shelter_cats
-            elif moves[m].animal_shelter_cats >= 1 or allow_shelter_runout == False:
-                c = 1
-            else: 
-                c = 0
-           
+            else:
+                c = 1 * shelter_factor
+                
+            if c > moves[m].animal_shelter_cats and allow_shelter_runout == True:
+                c = moves[m].animal_shelter_cats
+            
             players[p].cats += c
             moves[m].animal_shelter_cats -= c
             
             
         # animal control confiscates half your cats, then go to start
+        # note: since this space already has a factor, the player_factor
+        # is not applied
         elif moves[m].landing_space == 38: 
             c = players[p].cats // 2    # if an odd number, round down
             
@@ -563,13 +592,9 @@ for g in range(game_count):
         # home space - end game
         elif moves[m].landing_space == 40:
             
-            # find highest player
+            # find highest player(s)
             max_dict = find_highest_player(players, True)
-            
-            # if tied
-            if allow_ties == True and len(max_dict) > 1:
-                pass
-            
+                        
             # mark the winner(s)
             for k in max_dict.keys():
                 players[k].win = 1
@@ -585,7 +610,10 @@ for g in range(game_count):
         m += 1
 
 
-    # append the simulation results    
+#------------------------------------------------------------------------------    
+#   output the results
+#-----------------------------------------------------------------------------
+
     if g == 0:
         output_headers = True
         output_mode = 'w'
@@ -601,14 +629,22 @@ for g in range(game_count):
     moves_df.to_csv(path_or_buf='moves_output.csv', mode=output_mode, \
                     index=False, header=output_headers)
     
-    games_df = pd.DataFrame.from_dict(data={'game_nbr':[g], 'run_time_ms':[(time() - start_time)]})
-    games_df    
+    
+    game_info = { 'game_nbr' : [g], \
+                  'player_count' : player_count, \
+                  'choose_highest' : [choose_highest], \
+                  'allow_tray_runout' : [allow_tray_runout], \
+                  'allow_shelter_runout' : [allow_shelter_runout], \
+                  'path_th' : [path_th], \
+                  'run_time_s':[(time() - start_time)]
+                }
+    games_df = pd.DataFrame.from_dict(game_info)
     games_df.to_csv(path_or_buf='games_output.csv', mode=output_mode, \
                     index=False, header=output_headers)
     
     # print progress
     if (g+1) % progress_frequency == 0:
-        print(str(g) + ' games completed...')
+        print(str(g+1) + ' games completed...')
      
 # simulation complete
 print('Done.')
