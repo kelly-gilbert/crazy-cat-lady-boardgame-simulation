@@ -45,6 +45,7 @@ class move():
         self.player_4_location = 0
         self.player_prev_move_nbr = 0
         self.player_prev_location = 0
+        self.player_prev_cats = 0
 
 
 def spin():
@@ -262,6 +263,7 @@ for g in range(game_count):
             moves[m].spin_value = spin()
             moves[m].player_prev_move_nbr = players[p].prev_move_nbr
             moves[m].player_prev_location = players[p].location
+            moves[m].player_prev_cats = players[p].cats
         
             players[p].prev_move_nbr = m
         
@@ -438,6 +440,7 @@ for g in range(game_count):
             moves[m].spin_value = ''
             moves[m].player_prev_move_nbr = players[p].prev_move_nbr
             moves[m].player_prev_location = players[p].location
+            moves[m].player_prev_cats = players[p].cats
             
             players[p].prev_move_nbr = m
             
@@ -582,6 +585,7 @@ for g in range(game_count):
             moves[m].spin_value = ''
             moves[m].player_prev_move_nbr = players[p].prev_move_nbr
             moves[m].player_prev_location = players[p].location
+            moves[m].player_prev_cats = players[p].cats
             moves[m].landing_space = 1
             
             players[p].prev_move_nbr = m
