@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 
 """
+Simulate game play for the Crazy Cat Lady board game
+https://www.amazon.com/Accoutrements-11893-Crazy-Lady-Game/dp/B001J7AIAU
 
+-- Author: Kelly Gilbert
+-- Date: 2019-08-19
+-- Requirements: none
 """
 
 from time import time
@@ -115,7 +120,7 @@ def create_player_list(game_nbr, player_count):
     
         # assign a color, in clockwise order
         players[p].game_nbr = game_nbr
-        players[p].color = color_list[(p+c) % 4]
+        players[p].color = color_list[(p+c) % len(color_list)]
     
         players[p].initial_spin = initial_spins[(p+n) % player_count]
         players[p].tie_break_spin = tie_break_spins[(p+n) % player_count]
@@ -195,13 +200,14 @@ def attr_dict(list_name, attr_name):
 #------------------------------------------------------------------------------    
 # simulation settings
 #------------------------------------------------------------------------------
+scenario_name = ''             # scenario name for this run (added to filename)
 game_count = 10000             # number of games to simulate
 progress_frequency = 1000      # print progress every n games
-player_count = 4
+player_count = 3
 choose_highest = True    # when given the option to take from/give to a player, 
                          # choose the player with the most/fewest) cats
-allow_tray_runout = True       # allow the tray to run out
-allow_shelter_runout = True    # allow the animal shelter to run out
+allow_tray_runout = False       # allow the tray to run out
+allow_shelter_runout = False    # allow the animal shelter to run out
 
 tray_factor = 1                # multipliers for number of cats gained/lost
 shelter_factor = 1             #    to allow house rules (default = 1)
@@ -243,7 +249,7 @@ for g in range(game_count):
             if m == 0:
                 p = 0
             else:
-                p = (p + 1) % 4
+                p = (p + 1) % player_count
             
             # advance the round number
             if m > 0:
@@ -626,12 +632,12 @@ for g in range(game_count):
         output_mode = 'a'
         
     players_df = pd.DataFrame([vars(i) for i in players])
-    players_df.to_csv(path_or_buf='player_output.csv', mode=output_mode, \
-                      index=False, header=output_headers)
+    players_df.to_csv(path_or_buf='player_output_' + scenario_name + '.csv', \
+                     mode=output_mode, index=False, header=output_headers)
     
     moves_df = pd.DataFrame([vars(i) for i in moves])
-    moves_df.to_csv(path_or_buf='moves_output.csv', mode=output_mode, \
-                    index=False, header=output_headers)
+    moves_df.to_csv(path_or_buf='moves_output_' + scenario_name + '.csv', \
+                    mode=output_mode, index=False, header=output_headers)
     
     
     game_info = { 'game_nbr' : [g], \
@@ -643,7 +649,8 @@ for g in range(game_count):
                   'run_time_s':[(time() - start_time)]
                 }
     games_df = pd.DataFrame.from_dict(game_info)
-    games_df.to_csv(path_or_buf='games_output.csv', mode=output_mode, \
+    games_df.to_csv(path_or_buf='games_output_' + scenario_name + '.csv', \
+                    mode=output_mode, \
                     index=False, header=output_headers)
     
     # print progress
