@@ -17,14 +17,14 @@ import pandas as pd
 
 # Player class
 class player():
-    def __init__(self):
-        self.game_nbr = 0
+    def __init__(self, game_nbr = 0, location = 0, cats = 0):
+        self.game_nbr = game_nbr
         self.color = ''
         self.initial_spin = 0
         self.tie_break_spin = 0
-        self.location = 0
+        self.location = location
         self.skip_next_turn = False
-        self.cats = 0
+        self.cats = cats
         self.win = 0
         self.prev_move_nbr = 0
         
@@ -71,63 +71,42 @@ def create_player_list(game_nbr, player_count):
     # random), however, I wanted to simulate actual game play, including 
     # tracking how many times the initial spin was tied
     
-    initial_spins = []
-    tie_break_spins = {}
+    initial_spins = [spin() for p in range(player_count)]
     
-    for p in range(player_count):
-        initial_spins.append(spin())
-        tie_break_spins[p] = initial_spins[p]    # duplicate the spins
+    max_spin = max(initial_spins)
+    max_spin_idxs = [idx for idx in range(player_count) if initial_spins[idx]==max_spin]
     
-    # tie break the initial spin, if necessary    
-    tie_break_loops = 0    
-    while sum(v > 0 for v in tie_break_spins.values()) > 1:
-        tied = False
-        max_spin = max(v for v in tie_break_spins.values())
+    # tie break the initial spin, if necessary
+    tie_occured = len(max_spin_idxs)>1
+    while True:
+        new_spins = [spin() for x in max_spin_idxs]
+        max_spin = max(new_spins)
+        if new_spins.count(max_spin)>1:
+            max_spin_idxs = [idx for i, idx in enumerate(max_spin_idxs) if new_spins[i]==max_spin]
+            continue
         
-        if sum(v == max_spin for v in tie_break_spins.values()) > 1:
-            tied = True
+        # reset to 0 and only update recently tied indexes 
+        initial_spins = [0 for x in range(player_count)]
+        for i,idx in enumerate(max_spin_idxs):
+            initial_spins[idx] = new_spins[i]
+        break
     
-        if tied == True:
-            for k, v in tie_break_spins.items():
-                if v == max_spin:
-                    tie_break_spins[k] = spin()    # spin again
-                else:
-                    tie_break_spins[k] = 0    
-                    
-        else:    # not tied
-            for k, v in tie_break_spins.items():
-                if tie_break_loops == 0:
-                    tie_break_spins[k] = 0    # set all to zero
-                else:
-                   initial_spins[k] = v
-            break
-    
-        tie_break_loops += 1
-    
-        
     # offset the player order, based on the initial spin
-    if tie_break_loops == 0:    # initial spin not tied
-        n = initial_spins.index(max_spin)
-    else:
-        n = [k for (k,v) in tie_break_spins.items() if v == max_spin][0]
-    
+    n = initial_spins.index(max(initial_spins))
     
     # color offset
     c = randrange(0, player_count)    
     
     for p in range(player_count):
-        players.append(player())
+        playa = player(game_nbr, 1, starting_cat_count)
     
         # assign a color, in clockwise order
-        players[p].game_nbr = game_nbr
-        players[p].color = color_list[(p+c) % len(color_list)]
+        playa.color = color_list[(p+c) % len(color_list)]
+        playa.initial_spin = initial_spins[(p+n) % player_count]
+        playa.tie_break_spin = playa.initial_spin if tie_occured else 0
     
-        players[p].initial_spin = initial_spins[(p+n) % player_count]
-        players[p].tie_break_spin = tie_break_spins[(p+n) % player_count]
-                
-        players[p].cats = starting_cat_count
-        players[p].location = 1
-
+        players.append(playa)
+    
     return players
 
 
