@@ -1,0 +1,41 @@
+space_nbr|space_name|space_type|redirect_space|positive_negative|cat_change
+1|Start|Start||neutral|
+2|Find a cat curled up in a wheelbarrow|Gain 1 cat||positive|1
+3|Bribe a skittish cat with tuna treats|Gain 1 cat||positive|1
+4|Beware of dog|Lose 1 cat||negative|-1
+5|Pick up a stray|Gain 1 cat||positive|1
+6|Spin again|Spin again||neutral|
+7|Save a cat stuck in tree|Gain 1 cat||positive|1
+8|Stop to pick some catnip|Lose turn||negative|
+9|Park: cat chases butterfly|Lose 1 cat||negative|-1
+10|Cat more interested in empty cardboard box|Lose 1 cat||negative|-1
+11|Pick up friend's cat to catsit for a few days|Take one cat from any player||positive|1
+12|Kitty litter emergency|Go directly to supermarket|20|positive|
+13|Spin again|Spin again||neutral|
+14|Find a stray by the railroad tracks|Gain 1 cat||positive|1
+15|Kitten distracted by bit of fluff|Lose 1 cat||negative|-1
+16|Forgot cat food coupons|Go back to start|1|negative|
+17|Fall in love with neighborhood cat|Take one cat from any player||positive|1
+18|Pursue a mangy cat|Go back to park|9|negative|
+19|Milk truck spill|Lose 3 cats||negative|-3
+20|Supermarket: family giving away free kittens in front of store|Spin and gain that many cats||positive|3.5
+21|Sick cat|Go directly to veterinarian|26|negative|
+22|Stop to pet a cat|Lose next turn||negative|
+23|Pet store: adorable kittens in the pet store window|Spin to see how many cats you adopt||positive|3.5
+24|Spin again|Spin again||neutral|
+25|Wildcat|Wildcat card||neutral|
+26|Veterinarian: cats get mysterious rash|Spin to see how many cats to put back in the game tray||negative|-3.5
+27|Kitten falls from sky into your pocket|Gain 1 cat||positive|1
+28|Decision point|Decision point||neutral|
+29|Hear the meows of caged cats|Go directly to animal shelter|33|positive|
+30|Catnip in your pocket lures cats|Steal one cat from each player||positive|3
+31|Spin again|Spin again||neutral|
+32|Rescue grumpy old cat from pound|Gain 1 cat from shelter||positive|1
+33|Animal shelter|Rescue all cats currently in the shelter||positive|20
+34|Forgot flea collars|Go back to vet|26|negative|
+35|Cat fight!|Lose 2 cats||negative|-2
+36|Find a feral cat in a dumpster|Gain 1 cat||positive|1
+37|Hairball|Lose next turn||negative|
+38|Animal control confiscates half your cats|Lose half of your cats and go back to start|1|negative|-20
+39|Mama cat had kittens!|Spin to determine how many cats you get in the litter||positive|3.5
+40|Home|Game ends||neutral|

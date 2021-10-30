@@ -12,10 +12,10 @@ https://www.amazon.com/Accoutrements-11893-Crazy-Lady-Game/dp/B001J7AIAU
 from time import time
 from random import randrange
 from random import choice
-import pandas as pd
+from pandas import DataFrame
 
 
-# Player class
+# player class
 class player():
     def __init__(self):
         self.game_nbr = 0
@@ -29,7 +29,7 @@ class player():
         self.prev_move_nbr = 0
         
 
-# Move class
+# move class
 class move():
     def __init__(self):
         self.game_nbr = 0
@@ -71,12 +71,10 @@ def create_player_list(game_nbr, player_count):
     # random), however, I wanted to simulate actual game play, including 
     # tracking how many times the initial spin was tied
     
-    initial_spins = []
     tie_break_spins = {}
     
-    for p in range(player_count):
-        initial_spins.append(spin())
-        tie_break_spins[p] = initial_spins[p]    # duplicate the spins
+    initial_spins = [spin() for p in player_count]
+    tie_break_spins = initial_spins    # duplicate the spins
     
     # tie break the initial spin, if necessary    
     tie_break_loops = 0    
@@ -166,10 +164,6 @@ def end_move(move, players):
     for p in range(len(players)):
         setattr(move, 'player_' + str(p+1) + '_location', players[p].location)
         setattr(move, 'player_' + str(p+1) + '_cats', players[p].cats)
-        
-
-def end_game():
-    pass  
 
 
 def attr_list(list_name, attr_name):
@@ -194,6 +188,31 @@ def attr_dict(list_name, attr_name):
         
     return attr_dict
 
+
+def find_landing_space(current_space, spin, cats, path_th):
+    """
+    Determine the player's landing space
+    """
+    
+    if current_space + spin <= 28:
+        # before the split
+        landing_space = current_space + spin
+                                          
+    elif (current_space <= 28 and cats < path_th) \
+         or (current_space > 28 and current_space <= 33):
+        # player doesn't have enough cats for lower path OR
+        # player is already on the upper path --> take upper path
+        landing_space = (current_space + spin - 1) % 33 + 1
+                                          
+    else:    # enough cats for lower path OR already on lower path
+        landing_space = current_space + spin
+        if current_space <= 28:
+            landing_space += 5
+        
+        if landing_space > 40:
+            landing_space = 40
+            
+    return landing_space
 
 
   
@@ -275,25 +294,9 @@ for g in range(game_count):
         
                
             # find the landing space
-            if players[p].location + moves[m].spin_value <= 28:
-                # before the split
-                moves[m].landing_space = players[p].location + moves[m].spin_value
-                                                  
-            elif (players[p].location <= 28 and players[p].cats < path_th) \
-                 or (players[p].location > 28 and players[p].location <= 33):
-                # player doesn't have enough cats for lower path OR
-                # player is already on the upper path --> take upper path
-                moves[m].landing_space = (players[p].location + moves[m].spin_value - 1) \
-                                         % 33 + 1
-                                                  
-            else:    # enough cats for lower path OR already on lower path
-                moves[m].landing_space = players[p].location + moves[m].spin_value
-                if players[p].location <= 28:
-                    moves[m].landing_space += 5
-                
-                if moves[m].landing_space > 40:
-                    moves[m].landing_space = 40
-        
+            find_landing_space(players[p].location,\
+                               moves[m].spin_value, players[p].cats, path_th)
+                   
         else:
             continue_turn = False
 
@@ -318,14 +321,8 @@ for g in range(game_count):
                    
                 players[i].cats -= 1 * player_factor
                 players[p].cats += 1 * player_factor
-      
-    
-#        print(players[p].location)
-#        print(attr_list(players, 'cats'))
-#        print(moves[m].animal_shelter_cats)
-#        print(moves[m].game_tray_cats)
 
-    
+   
 #------------------------------------------------------------------------------    
 #       take action based on the landing space
 #-----------------------------------------------------------------------------
@@ -613,9 +610,6 @@ for g in range(game_count):
 
 
         # end the move
-        #print(attr_list(players, 'cats'))
-        #print(moves[m].game_tray_cats)
-        #print(moves[m].animal_shelter_cats)
         end_move(moves[m], players)
         m += 1
 
@@ -631,15 +625,17 @@ for g in range(game_count):
         output_headers = False
         output_mode = 'a'
         
-    players_df = pd.DataFrame([vars(i) for i in players])
+    # output the player data
+    players_df = DataFrame([vars(i) for i in players])
     players_df.to_csv(path_or_buf='player_output_' + scenario_name + '.csv', \
                      mode=output_mode, index=False, header=output_headers)
     
-    moves_df = pd.DataFrame([vars(i) for i in moves])
+    # output the moves history
+    moves_df = DataFrame([vars(i) for i in moves])
     moves_df.to_csv(path_or_buf='moves_output_' + scenario_name + '.csv', \
                     mode=output_mode, index=False, header=output_headers)
     
-    
+    # output the game summaries
     game_info = { 'game_nbr' : [g], \
                   'player_count' : player_count, \
                   'choose_highest' : [choose_highest], \
@@ -648,7 +644,7 @@ for g in range(game_count):
                   'path_th' : [path_th], \
                   'run_time_s':[(time() - start_time)]
                 }
-    games_df = pd.DataFrame.from_dict(game_info)
+    games_df = DataFrame.from_dict(game_info)
     games_df.to_csv(path_or_buf='games_output_' + scenario_name + '.csv', \
                     mode=output_mode, \
                     index=False, header=output_headers)
