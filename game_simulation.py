@@ -73,48 +73,29 @@ def create_player_list(game_nbr, player_count):
     color_list = ['pink', 'blue', 'yellow', 'orange']   # clockwise order of colors
     players = []
 
+
     # spin to see which player goes first
     # this isn't absolutely necessary (a starting player could be chosen at random), however,
     # I wanted to simulate actual game play, including tracking how many times the initial spin
     # was tied
-
-    tie_break_spins = {}
-
-    initial_spins = [spin() for p in player_count]
-    tie_break_spins = initial_spins    # duplicate the spins
-
+    
+    initial_spins = [spin() for p in range(0, player_count)]
+    print(initial_spins)
+    
     # tie break the initial spin, if necessary
+    tie_break_spins = initial_spins.copy()
     tie_break_loops = 0
-    while sum(v > 0 for v in tie_break_spins.values()) > 1:
-        tied = False
-        max_spin = max(v for v in tie_break_spins.values())
-
-        if sum(v == max_spin for v in tie_break_spins.values()) > 1:
-            tied = True
-
-        if tied:
-            for k, v in tie_break_spins.items():
-                if v == max_spin:
-                    tie_break_spins[k] = spin()    # spin again
-                else:
-                    tie_break_spins[k] = 0
-
-        else:    # not tied
-            for k, v in tie_break_spins.items():
-                if tie_break_loops == 0:
-                    tie_break_spins[k] = 0    # set all to zero
-                else:
-                   initial_spins[k] = v
-            break
-
+    
+    while sum(v == max(tie_break_spins) for v in tie_break_spins) > 1:
+        tie_break_spins = [spin() if v == max(tie_break_spins) else 0 for v in tie_break_spins]
         tie_break_loops += 1
 
 
     # offset the player order, based on the initial spin
     if tie_break_loops == 0:    # initial spin not tied
-        n = initial_spins.index(max_spin)
+        n = initial_spins.index(max(initial_spins))
     else:
-        n = [k for (k, v) in tie_break_spins.items() if v == max_spin][0]
+        n = tie_break_spins.index(max(tie_break_spins))
 
 
     # color offset
@@ -225,7 +206,7 @@ def find_landing_space(current_space, spin, cats, path_th):
 # simulation settings
 # --------------------------------------------------------------------------------------------------
 
-scenario_name = ''             # scenario name for this run (added to filename)
+scenario_name = '01_standard_rules'             # scenario name for this run (added to filename)
 game_count = 10000             # number of games to simulate
 progress_frequency = 1000      # print progress every n games
 player_count = 4               # number of players in the game (2-4)
@@ -642,12 +623,12 @@ for g in range(game_count):
 
     # output the player data
     players_df = DataFrame([vars(i) for i in players])
-    players_df.to_csv(path_or_buf='player_output_' + scenario_name + '.csv', \
+    players_df.to_csv(path_or_buf=f'player_output_{scenario_name}.csv', \
                      mode=output_mode, index=False, header=output_headers)
 
     # output the moves history
     moves_df = DataFrame([vars(i) for i in moves])
-    moves_df.to_csv(path_or_buf='moves_output_' + scenario_name + '.csv', \
+    moves_df.to_csv(path_or_buf=f'moves_output_{scenario_name}.csv', \
                     mode=output_mode, index=False, header=output_headers)
 
     # output the game summaries
@@ -660,7 +641,7 @@ for g in range(game_count):
                  'run_time_s':[(time() - start_time)]
                 }
     games_df = DataFrame.from_dict(game_info)
-    games_df.to_csv(path_or_buf='games_output_' + scenario_name + '.csv', \
+    games_df.to_csv(path_or_buf=f'games_output_{scenario_name}.csv', \
                     mode=output_mode, \
                     index=False, header=output_headers)
 
