@@ -313,9 +313,11 @@ for g in range(game_count):
                and moves != 0 \
                and players[i].location == players[p].location \
                and players[i].cats > 0:
+                   
+                c = min(players[i].cats, 1 * player_factor)
 
-                players[i].cats -= 1 * player_factor
-                players[p].cats += 1 * player_factor
+                players[i].cats -= c
+                players[p].cats += c
 
 
 # --------------------------------------------------------------------------------------------------
@@ -465,7 +467,7 @@ for g in range(game_count):
             # 33 - rescue all cats from the shelter
 
             if moves[m].landing_space == 33:
-                c = moves[m].animal_shelter_cats
+                c = max(0, moves[m].animal_shelter_cats)
             else:
                 c = 1 * shelter_factor
 
@@ -496,7 +498,7 @@ for g in range(game_count):
             else:
                 c = 1 * player_factor
 
-            # adjust for players current cat count
+            # adjust for players current cat count                
             if players[p].cats < c:
                 c = players[p].cats
 
