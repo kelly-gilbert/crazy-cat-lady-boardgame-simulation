@@ -14,7 +14,7 @@ Crazy Cat Lady is a basic spin-and-move board game that follows the life of a fe
 
 #### This is a basic spin-and-move game, with very little decision making. However, when decisions were required they were assumed as follows:
 * When given the choice to *take from* another player, the player with the *most* cats is chosen (this can be changed to random using the choose_highest variable to False)
-* When given the choice to *give to* another player, the player with the *least* cats is chosen (this can be changed to random using the choose_highest variable to False)
+* When given the choice to *give to* another player, the player with the *fewest* cats is chosen (this can be changed to random using the choose_highest variable to False)
 
 #### Tray runout
 In most cases, players draw cats from the main game tray and lose cats to the animal shelter. In some cases, the game tray may run out of cats, and the game instructions do not specify what to do in that situation. For the base rules, I assumed that *both trays were allowed to run out of cats*, and a players would draw zero cats until the tray was replenished. For example, if a player was instructed to draw two cats from the tray, but the tray was empty, the player would receive no cats on that turn.
