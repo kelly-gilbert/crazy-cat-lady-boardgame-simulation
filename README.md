@@ -1,6 +1,6 @@
-# Crazy Cat Lady Board Game Simulation
+# The Crazy Cat Lady Game (Board Game) Simulation
 
-Crazy Cat Lady is a basic spin-and-move board game that follows the life of a feline enthusiast as she visits the park, vet, animal shelter, etc., gaining and losing cats along the way. After playing the game with friends, I used Monte Carlo simulation see if our experiences (landing on the same spaces frequently, difficult to finish, etc.) were typical). I also wanted to simulate application of some "house rules" to speed up the game.
+The Crazy Cat Lady Game (Accoutrements LLC, 2013) is a basic spin-and-move board game that follows the life of a feline enthusiast as she visits the park, vet, animal shelter, etc., gaining and losing cats along the way. After playing the game with friends, I used Monte Carlo simulation see if our experiences (landing on the same spaces frequently, difficult to finish, etc.) were typical. I also wanted to simulate application of some "house rules" to speed up the game.
 
 [View the game on Amazon here](https://www.amazon.com/Accoutrements-11893-Crazy-Lady-Game/dp/B001J7AIAU)
 
