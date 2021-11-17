@@ -1,6 +1,20 @@
 # -*- coding: utf-8 -*-
 """
+Summarize the simulation output for visualization.
+Generates three output files to the main directory:
+1 - summary_by_space.csv - simulated game play, summarized by scenario name and landing space number
+2 - summary_passed_split_cats_for_histogram.csv - count of occurrences by scenario name and # of cats
+                                                  at the time a player passed the split point. This 
+                                                  is used to create a histogram of cat count at the 
+                                                  split point to identify potential threshold changes.
+3 - summary_by_game.csv - simulated game play, summarized by scenario name and game #
 
+
+-- Author: Kelly Gilbert
+-- Date: 2021-11-15
+-- Requirements:
+   - main_dir = directory containing the source files
+   - moves_output_..., games_output_..., and player_output... simulation output files exist for at least one scenario
 """
 
 
@@ -9,12 +23,10 @@ from os import chdir, listdir
 from pandas import concat, read_csv
 
 
-# read in the moves detail
-chdir(r'C:\projects\ccl')
+main_dir = r'C:\projects\ccl'
 
 
-# read in the space data
-df_spaces = read_csv('board_spaces_info.csv', sep='|')
+chdir(main_dir)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -55,9 +67,7 @@ for f in [f for f in listdir() if 'moves_output_' in f]:
     
     # the player that landed on home won (or tied)
     df['home_player_won'] = where((df['landing_space'] == 40) & (df['win'] == 1), 1, 0)
-    
- 
-    
+       
     
     # append to the summary dataframes
 
@@ -92,7 +102,7 @@ for f in [f for f in listdir() if 'moves_output_' in f]:
                                   home_player_won=('home_player_won', 'sum'))\
                              .reset_index()])    
         
-    print(f)
+    print(f'{f} -- completed' )
 
 
 # --------------------------------------------------------------------------------------------------
@@ -134,26 +144,3 @@ df_games.drop(columns=['win'], inplace=True)
 
 # output the summary file
 df_games.to_csv('summary_by_game.csv', index=False)
-
-
-
-
-
-
-
-# f = 'moves_output_01_original_rules.csv'
-#     df = read_csv(f).assign(scenario_name=f)\
-#          .rename(columns={'player_prev_location' : 'prev_space'})\
-#          .merge(read_csv(f.replace('moves', 'player'), usecols=[0, 1, 5, 8]), 
-#                 on=['game_nbr', 'player_nbr'], how='left')                                   
-
-
-
-# df[(df['passed_split'] == 1) & (df['passed_split_left'] == 0) & (df['player_prev_cats'] == 10)]
-
-# df.iloc[1553]
-
-
-
-# df['split_cats'].sum()
-# df[df['split_cats']  < 0]
