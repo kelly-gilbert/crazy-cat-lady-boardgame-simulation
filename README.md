@@ -4,6 +4,8 @@ The Crazy Cat Lady Game (Accoutrements LLC, 2013) is a basic spin-and-move board
 
 [View the game on Amazon here](https://www.amazon.com/Accoutrements-11893-Crazy-Lady-Game/dp/B001J7AIAU)
 
+[Simulation results visualized (Tableau Public)](https://public.tableau.com/app/profile/klg27/viz/BoardGameSimulationHoldontoYourCats/Dashboard)
+
 #### General assumptions:
 * Fair spinner (equal probability of landing on 1-6)
 * Spins are independent (the result of spin #2 does not differ based on the landing place of the previous spin)
